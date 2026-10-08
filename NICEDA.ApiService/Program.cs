@@ -1,4 +1,6 @@
 using NICEDA.ApiService.Endpoints;
+using NICEDA.ApiService.Agent;
+using NICEDA.ApiService.Rag;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,8 @@ builder.AddSqlServerClient("niceda");
 builder.AddAzureCosmosClient("cosmos", configureClientOptions: options =>
 {
     options.UseSystemTextJsonSerializerWithOptions = new System.Text.Json.JsonSerializerOptions();
+    options.ConnectionMode = Microsoft.Azure.Cosmos.ConnectionMode.Gateway;
+    options.RequestTimeout = TimeSpan.FromSeconds(15);
 });
 
 // Add services to the container.
@@ -25,8 +29,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<NICEDA.ApiService.Crm.CrmRepository>();
 builder.Services.AddSingleton<NICEDA.ApiService.Legal.LegalRepository>();
 builder.Services.AddSingleton<NICEDA.ApiService.Sql.RawSqlSeeder>();
+builder.Services.AddSingleton<NICEDA.ApiService.Sql.OptimizedSqlSeeder>();
 builder.Services.AddSingleton<NICEDA.ApiService.SupportDocs.RawSupportSeeder>();
+builder.Services.AddSingleton<NICEDA.ApiService.SupportDocs.OptimizedSupportSeeder>();
 builder.Services.AddHostedService<NICEDA.ApiService.SeedDataHostedService>();
+builder.Services.AddNicedaRagAndFeedback();
+builder.Services.AddNicedaAgentServices();
+builder.Services.AddScoped<NICEDA.ApiService.DataLifecycle.CustomerDataLifecycle>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -42,6 +51,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapDataExplorerEndpoints();
+app.MapAgentChatEndpoints();
 
 app.MapDefaultEndpoints();
 

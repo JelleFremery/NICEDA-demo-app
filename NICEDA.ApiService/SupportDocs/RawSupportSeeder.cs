@@ -20,7 +20,7 @@ public sealed class RawSupportSeeder
     private const string DatabaseId = "niceda";
     private const string ContainerId = "raw-support";
 
-    public async Task EnsureSeededAsync(CosmosClient client, CancellationToken cancellationToken = default)
+    public async Task EnsureSeededAsync(CosmosClient client, IReadOnlySet<string> customerIds, CancellationToken cancellationToken = default)
     {
         var database = await client.CreateDatabaseIfNotExistsAsync(DatabaseId, cancellationToken: cancellationToken);
         var containerResponse = await database.Database.CreateContainerIfNotExistsAsync(
@@ -28,22 +28,9 @@ public sealed class RawSupportSeeder
             cancellationToken: cancellationToken);
         var container = containerResponse.Container;
 
-        var existing = 0;
-        using var countIterator = container.GetItemQueryIterator<int>(
-            new QueryDefinition("SELECT VALUE COUNT(1) FROM c"));
-        if (countIterator.HasMoreResults)
-        {
-            var page = await countIterator.ReadNextAsync(cancellationToken);
-            existing = page.FirstOrDefault();
-        }
-
-        if (existing > 0)
-        {
-            return;
-        }
-
         foreach (var document in SeedDocuments())
         {
+            if (!customerIds.Contains(document["customerId"]!.GetValue<string>())) continue;
             await container.UpsertItemAsync(
                 document,
                 new PartitionKey(document["customerId"]!.GetValue<string>()),

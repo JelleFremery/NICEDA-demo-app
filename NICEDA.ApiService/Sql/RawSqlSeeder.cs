@@ -16,6 +16,13 @@ public sealed class RawSqlSeeder
     [
         "IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'raw') EXEC('CREATE SCHEMA raw');",
         """
+        IF OBJECT_ID('raw.DeletedCustomer', 'U') IS NULL
+        CREATE TABLE raw.DeletedCustomer (
+            CustomerId NVARCHAR(50) NOT NULL PRIMARY KEY,
+            DeletedAtUtc DATETIME2 NOT NULL
+        );
+        """,
+        """
         IF OBJECT_ID('raw.Status', 'U') IS NULL
         CREATE TABLE raw.Status (
             StatusId INT NOT NULL PRIMARY KEY,
@@ -103,10 +110,11 @@ public sealed class RawSqlSeeder
             }
         }
 
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
         foreach (var (id, code) in Statuses)
         {
             await using var command = new SqlCommand(
-                "INSERT INTO raw.Status (StatusId, StatusCode) VALUES (@id, @code);", connection);
+                "IF NOT EXISTS (SELECT 1 FROM raw.Status WHERE StatusId=@id) INSERT INTO raw.Status (StatusId, StatusCode) VALUES (@id, @code);", connection, transaction);
             command.Parameters.AddWithValue("@id", id);
             command.Parameters.AddWithValue("@code", code);
             await command.ExecuteNonQueryAsync(cancellationToken);
@@ -114,9 +122,13 @@ public sealed class RawSqlSeeder
 
         foreach (var customer in SeedCustomers)
         {
+            await using var deletedCheck = new SqlCommand(
+                "SELECT COUNT(*) FROM raw.DeletedCustomer WHERE CustomerId=@id;", connection, transaction);
+            deletedCheck.Parameters.AddWithValue("@id", customer.Id);
+            if ((int)(await deletedCheck.ExecuteScalarAsync(cancellationToken))! > 0) continue;
             await using (var customerCommand = new SqlCommand(
                 "INSERT INTO raw.Customer (CustomerId, CustomerName, Region, SalesRepEmail) VALUES (@id, @name, @region, @rep);",
-                connection))
+                connection, transaction))
             {
                 customerCommand.Parameters.AddWithValue("@id", customer.Id);
                 customerCommand.Parameters.AddWithValue("@name", customer.Name);
@@ -133,7 +145,7 @@ public sealed class RawSqlSeeder
                 OUTPUT INSERTED.ContractId
                 VALUES (@customerId, @statusId, @startDate, @endDate, @annualValue);
                 """,
-                connection))
+                connection, transaction))
             {
                 contractCommand.Parameters.AddWithValue("@customerId", customer.Id);
                 contractCommand.Parameters.AddWithValue("@statusId", statusId);
@@ -148,7 +160,7 @@ public sealed class RawSqlSeeder
                 INSERT INTO raw.ContractLine (ContractId, ProductCode, Description, Quantity, UnitPrice)
                 VALUES (@contractId, @productCode, @description, @quantity, @unitPrice);
                 """,
-                connection);
+                connection, transaction);
             lineCommand.Parameters.AddWithValue("@contractId", contractId);
             lineCommand.Parameters.AddWithValue("@productCode", "CORE-PLATFORM");
             lineCommand.Parameters.AddWithValue("@description", "Core platform subscription");
@@ -156,5 +168,6 @@ public sealed class RawSqlSeeder
             lineCommand.Parameters.AddWithValue("@unitPrice", customer.AnnualValue);
             await lineCommand.ExecuteNonQueryAsync(cancellationToken);
         }
+        await transaction.CommitAsync(cancellationToken);
     }
 }

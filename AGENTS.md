@@ -49,6 +49,13 @@ cd NICEDA.AppHost
 dotnet run
 ```
 
+`dotnet test NICEDA.Tests` is the fast offline default. Live Docker tests
+opt in using `NICEDA_TEST_API_URL`, `NICEDA_TEST_SQL`, and
+`NICEDA_TEST_COSMOS` against an already-running AppHost (see README).
+Never cold-start the distributed app inside each test run. Keep the
+four-minute `test.runsettings` deadline enabled and pass cancellation
+tokens through integration operations.
+
 Aspire's dashboard will show links to the running services. Docker is the
 target execution environment for the talk — containers are driven through
 Aspire resource definitions in `NICEDA.AppHost`, not hand-written

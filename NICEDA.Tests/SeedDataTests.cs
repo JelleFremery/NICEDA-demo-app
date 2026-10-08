@@ -102,4 +102,50 @@ public class SeedDataTests
             Assert.Contains(customerId, crmIds);
         }
     }
+
+    [Fact]
+    public void OptimizedSupportSeeder_AllDocumentsHaveClassificationMetadata()
+    {
+        var crmIds = CreateCrmRepository().GetAll().Select(c => c.Id).ToHashSet();
+        var documents = NICEDA.ApiService.SupportDocs.OptimizedSupportSeeder.SeedDocuments().ToList();
+
+        Assert.NotEmpty(documents);
+        foreach (var document in documents)
+        {
+            var customerId = document["customerId"]?.GetValue<string>();
+            Assert.False(string.IsNullOrWhiteSpace(customerId));
+            Assert.Contains(customerId, crmIds);
+
+            // NICEDA-PRACTICE-4: every optimized document must carry
+            // classification metadata attached at ingestion time.
+            Assert.False(string.IsNullOrWhiteSpace(document["classification"]?.GetValue<string>()));
+            Assert.False(string.IsNullOrWhiteSpace(document["region"]?.GetValue<string>()));
+            Assert.False(string.IsNullOrWhiteSpace(document["severity"]?.GetValue<string>()));
+            Assert.False(string.IsNullOrWhiteSpace(document["concept"]?.GetValue<string>()));
+            Assert.False(string.IsNullOrWhiteSpace(document["sourceSystem"]?.GetValue<string>()));
+            Assert.False(string.IsNullOrWhiteSpace(document["ingestedAtUtc"]?.GetValue<string>()));
+            var inventory = NICEDA.ApiService.DataInventory.DataInventoryCatalog.Entries.Single(e => e.Owner == "Support");
+            Assert.Equal(inventory.Classification, document["classification"]!.GetValue<string>());
+            Assert.Equal(inventory.Owner, document["owner"]!.GetValue<string>());
+            Assert.Equal(730, document["retentionDays"]!.GetValue<int>());
+            Assert.StartsWith("support-", document["sourceId"]!.GetValue<string>());
+        }
+    }
+
+    [Fact]
+    public void OptimizedSupportSeeder_SplitsContosoSecurityAssessmentIntoThreeConceptChunks()
+    {
+        var documents = NICEDA.ApiService.SupportDocs.OptimizedSupportSeeder.SeedDocuments().ToList();
+
+        // NICEDA-PRACTICE-7: the single raw Contoso "security assessment"
+        // blob must become 3 separate documents, each chunked around one
+        // coherent concept (not an arbitrary character/token window).
+        var chunks = documents
+            .Where(d => d["customerId"]!.GetValue<string>() == "contoso"
+                && d["concept"]!.GetValue<string>().StartsWith("security-finding-", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal(3, chunks.Count);
+        Assert.Equal(3, chunks.Select(c => c["concept"]!.GetValue<string>()).Distinct().Count());
+    }
 }

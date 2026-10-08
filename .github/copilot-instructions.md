@@ -49,6 +49,11 @@ demonstrates:
 
 ## Repo-specific tooling
 
+- Normal tests are offline and deterministic. Docker integration checks
+  explicitly opt in against an already-running AppHost; do not put cold
+  emulator startup or unbounded teardown inside the default test suite.
+  Keep `NICEDA.Tests/test.runsettings`' four-minute deadline enabled.
+
 - `.github/extensions/niceda-demo-guard/` — a Copilot CLI extension used
   while building this repo: a tool to sanity-check a data source
   description against the 10 practices, and a hook that pauses on

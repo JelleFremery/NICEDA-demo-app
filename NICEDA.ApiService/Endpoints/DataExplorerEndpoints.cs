@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using NICEDA.ApiService.Crm;
 using NICEDA.ApiService.DataInventory;
 using NICEDA.ApiService.Legal;
+using NICEDA.ApiService.Sql;
 
 namespace NICEDA.ApiService.Endpoints;
 
@@ -24,6 +25,12 @@ public static class DataExplorerEndpoints
         group.MapGet("/crm/customers", (CrmRepository repository) => repository.GetAll());
 
         group.MapGet("/legal/documents", (LegalRepository repository) => repository.GetAll());
+
+        group.MapGet("/crm/optimized/customers", (CrmRepository repository) =>
+            repository.GetAll().Select(CustomerProfiles.Project));
+        group.MapGet("/legal/optimized/documents", (LegalRepository repository) =>
+            repository.GetAll().Select(LegalKnowledgeProjection.Project));
+        group.MapGet("/glossary", () => SemanticGlossary.Terms);
 
         group.MapGet("/sql/raw/customers", async (SqlConnection connection, CancellationToken cancellationToken) =>
         {
@@ -59,6 +66,30 @@ public static class DataExplorerEndpoints
         group.MapGet("/cosmos/raw-support", async (CosmosClient client, CancellationToken cancellationToken) =>
         {
             var container = client.GetContainer("niceda", "raw-support");
+            var results = new List<JsonObject>();
+            using var iterator = container.GetItemQueryIterator<JsonObject>("SELECT * FROM c");
+            while (iterator.HasMoreResults)
+            {
+                var page = await iterator.ReadNextAsync(cancellationToken);
+                results.AddRange(page);
+            }
+            return results;
+        });
+
+        // NICEDA-PRACTICE-3 / NICEDA-PRACTICE-8 (read side): a single
+        // business-named view, not a join the caller has to know how to
+        // write. Contrast with /sql/raw/customers above.
+        group.MapGet("/sql/optimized/customer-health", async (SqlConnection connection, CancellationToken cancellationToken) =>
+            await CustomerHealthQueries.GetCustomerHealthAsync(connection, cancellationToken: cancellationToken));
+
+        group.MapGet("/sql/optimized/follow-up-tasks", async (SqlConnection connection, CancellationToken cancellationToken) =>
+            await FollowUpTaskCommands.GetFollowUpTasksAsync(connection, cancellationToken: cancellationToken));
+
+        // NICEDA-PRACTICE-4 / NICEDA-PRACTICE-7: metadata envelope +
+        // concept-based chunking. Contrast with /cosmos/raw-support above.
+        group.MapGet("/cosmos/optimized-support", async (CosmosClient client, CancellationToken cancellationToken) =>
+        {
+            var container = client.GetContainer("niceda", "optimized-support");
             var results = new List<JsonObject>();
             using var iterator = container.GetItemQueryIterator<JsonObject>("SELECT * FROM c");
             while (iterator.HasMoreResults)
