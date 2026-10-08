@@ -78,7 +78,9 @@ a configured Foundry credential; deterministic checks do not.
 - **Practice 5 (authorization before retrieval)** —
   `Security/DemoIdentity.cs` and `Rag/KnowledgeSearchService.cs`.
   Trusted identity filters candidates before cosine ranking, in both
-  modes. The Before demo exposes poor structure, not an intentional
+  modes, and filters source text before embedding. The two immutable demo
+  scopes have separate caches; admin's vectors are never reused for Jane.
+  The Before demo exposes poor structure, not an intentional
   authorization bypass. Security metadata is excluded from embeddings.
 - **RAG** — `Rag/FoundryEmbeddingService.cs` builds real embeddings from
   Foundry. Offline deterministic tests inject an explicitly fake embedding
@@ -87,10 +89,16 @@ a configured Foundry credential; deterministic checks do not.
   `Feedback/CosmosFeedbackStore.cs` retain structured outcomes, failures,
   and interactions in a real Cosmos `feedback` container. Customer-linked
   feedback and cached vectors participate in
-  `DataLifecycle/CustomerDataLifecycle.cs` deletion.
+  `DataLifecycle/CustomerDataLifecycle.cs` deletion. Startup retries
+  durable deletion markers through that lifecycle; task and feedback
+  writes share the same per-customer transaction lock.
 - **Agent Framework and MCP** — `Agent/AgentChatService.cs` combines
   retrieval, the customer-health read model, and the separate
   `NICEDA.McpServer` follow-up tool. `GovernedTransportTests.cs` verifies
   the real HTTP MCP action, identity scope, and Before-mode write denial.
   `NICEDA.Web` shows the shared mode/identity, citations, traces, and
-  feedback controls.
+  feedback controls. Before omits the optimized health capability; After
+  exposes it. Trusted idempotency keys bind action retries to a single
+  SQL task, with conflicts rejected rather than repeated writes.
+  `Agent/AgentChatOutcomeRecorder.cs` preserves completed outcomes and
+  reports a logged warning if feedback storage fails.

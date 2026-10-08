@@ -139,14 +139,15 @@ Flagging this so it's not a surprise later.
 - **Tools (kept to a minimal, demoable set)**:
   1. `search_knowledge` — in-process RAG tool (vector search over the
      optimized Cosmos chunks, security-filtered).
-  2. `get_customer_health` — in-process CQRS read tool (practice 8).
+  2. `get_customer_health` — in-process CQRS read tool (practice 8),
+     available only in After; Before explicitly lacks this capability.
   3. `create_follow_up_task` — the one real MCP tool, served by
      `NICEDA.McpServer`, kept logically and physically separate from the
      in-process tools per your instruction to isolate MCP logic.
   Three tools is enough to show "RAG for knowledge, MCP for capability"
   (slide 38) without turning the chat demo into a tool-sprawl tour.
-- **Identity**: a current-user dropdown (e.g. "Jane — CustomerSuccess,
-  EU, Contoso+Fabrikam" vs "Admin") drives the security context for both
+- **Identity**: a current-user dropdown ("Jane — CustomerSuccess,
+  EU, Betabit+Fenetre+Techorama" vs "Admin") drives the security context for both
   RAG filtering and MCP tool authorization — no real sign-in required for
   the demo.
 - **Runs against both datasets**: the same agent/chat endpoint takes the
@@ -230,3 +231,10 @@ integration checks finish in seconds; normal tests are offline, with
 explicit integration skips and a four-minute overall deadline. The
 remaining external dependency for a full live chat demo is a rotated
 Foundry credential and access to both configured model deployments.
+
+The code-review fixes are applied: source authorization precedes
+embedding as well as ranking, Before no longer uses the optimized health
+tool, task retries have durable idempotency, feedback failure does not
+hide a completed action, and startup reconciles partial deletions through
+the full lifecycle. See `code-review-fix-plan.md` for regression coverage
+and `demo-speaker-notes.md` for the updated presenter script.

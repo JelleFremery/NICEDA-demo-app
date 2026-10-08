@@ -131,6 +131,13 @@ demo SQL database when using Compose.
 
 ### Five-minute demo beats
 
+Paste-ready slide notes are in
+[`docs/demo-speaker-notes.md`](./docs/demo-speaker-notes.md).
+The native Visual Studio bookmark setup and code tour are in
+[`docs/demo-bookmarks.md`](./docs/demo-bookmarks.md).
+Known issues and the prioritized repair sequence are in
+[`docs/code-review-fix-plan.md`](./docs/code-review-fix-plan.md).
+
 1. **Before:** open Data Explorer, select Before, tour CRM's many fields,
    SQL joins, inconsistent support JSON, and Legal folder paths.
 2. **After:** keep the customer/system selected and flip to After; show
@@ -148,6 +155,27 @@ The user dropdown is **demo identity, not authentication**. The data
 explorer intentionally exposes the inventory to the presenter. Real
 deployment needs authenticated identities and protected internal API/MCP
 endpoints; do not expose this app publicly as-is.
+
+Before chat exposes knowledge retrieval, not the optimized
+`get_customer_health` capability. After adds customer health and the
+follow-up action. Jane's examples target Techorama; select admin for the
+Contoso walkthrough. Document text is authorized before being sent for
+embedding, with separate indexes for Jane and admin.
+
+Follow-up requests carry a trusted idempotency key through the MCP/API
+boundary. A retry with the same identity, key, and payload returns the
+existing task; a changed payload is rejected. The chat UI keeps a pending
+key across failures/warnings and starts a new operation after an
+unqualified success. Direct `/api/chat` callers must supply a 1-100
+character `requestIdempotencyKey`, and direct MCP/action callers send
+`X-Niceda-Idempotency-Key`. Completed task IDs/outcomes remain visible
+with a warning if outcome-feedback persistence fails.
+
+Startup finishes deletions recorded by durable SQL markers before
+seeding support data. Customer-linked task/feedback writes serialize with
+deletion and reject marked customers. The live deletion regression uses
+a scratch customer and checks original and derivative stores; do not
+delete seeded demo customers to reset the talk.
 
 ## Repo tooling for Copilot CLI
 

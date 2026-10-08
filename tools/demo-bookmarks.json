@@ -1,0 +1,80 @@
+[
+  {
+    "id": "B01",
+    "title": "Inventory before architecture",
+    "file": "NICEDA.ApiService\\DataInventory\\DataInventoryCatalog.cs",
+    "anchor": "NICEDA-PRACTICE-1: Build a data inventory."
+  },
+  {
+    "id": "B02",
+    "title": "Three use cases before schemas",
+    "file": "docs\\agent-use-cases.md",
+    "anchor": "NICEDA-PRACTICE-2: Identify agent use cases"
+  },
+  {
+    "id": "B03",
+    "title": "Before: normalized SQL storage",
+    "file": "NICEDA.ApiService\\Sql\\RawSqlSeeder.cs",
+    "anchor": "class RawSqlSeeder"
+  },
+  {
+    "id": "B04",
+    "title": "Semantic view over the same SQL rows",
+    "file": "NICEDA.ApiService\\Sql\\OptimizedSqlSeeder.cs",
+    "anchor": "one business-named view instead of forcing every"
+  },
+  {
+    "id": "B05",
+    "title": "Classification and meaningful support chunks",
+    "file": "NICEDA.ApiService\\SupportDocs\\OptimizedSupportSeeder.cs",
+    "anchor": "NICEDA-PRACTICE-4 (classify during ingestion)"
+  },
+  {
+    "id": "B06",
+    "title": "Authorize before embedding and ranking",
+    "file": "NICEDA.ApiService\\Rag\\KnowledgeSearchService.cs",
+    "anchor": "var authorizedCandidates = index"
+  },
+  {
+    "id": "B07",
+    "title": "Delete original and derivative customer data",
+    "file": "NICEDA.ApiService\\DataLifecycle\\CustomerDataLifecycle.cs",
+    "anchor": "NICEDA-PRACTICE-6: invalidate derivative data first"
+  },
+  {
+    "id": "B08",
+    "title": "Deterministic retrieval fact assertion",
+    "file": "NICEDA.Tests\\RagKnowledgeSearchTests.cs",
+    "anchor": "Assert.Equal(\"techorama-export\", results[0].Id);"
+  },
+  {
+    "id": "B09",
+    "title": "Agent Framework and business read tool",
+    "file": "NICEDA.ApiService\\Agent\\AgentChatService.cs",
+    "anchor": "async Task<object> GetCustomerHealthAsync(string? customerId, CancellationToken ct)"
+  },
+  {
+    "id": "B10",
+    "title": "Separate governed HTTP MCP action",
+    "file": "NICEDA.McpServer\\Tools\\CreateFollowUpTaskTool.cs",
+    "anchor": "public async Task<string> CreateFollowUpTask("
+  },
+  {
+    "id": "B11",
+    "title": "CQRS validated write command",
+    "file": "NICEDA.ApiService\\Sql\\FollowUpTaskCommands.cs",
+    "anchor": "Write side of the CQRS split (NICEDA-PRACTICE-8)"
+  },
+  {
+    "id": "B12",
+    "title": "Feedback linked to affected customers",
+    "file": "NICEDA.ApiService\\Agent\\AgentChatService.cs",
+    "anchor": "private async Task RecordPerCustomerAsync("
+  },
+  {
+    "id": "B13",
+    "title": "Jane's explicit EU account scope",
+    "file": "NICEDA.ApiService\\Security\\DemoIdentity.cs",
+    "anchor": "private static readonly IReadOnlySet<string> JaneCustomerIds ="
+  }
+]
