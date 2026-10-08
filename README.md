@@ -26,9 +26,9 @@ by [Jelle Fremery](https://www.techorama.nl/schedule/sessions/1241602).
 4. **Agent orchestration** built with the **Microsoft Agent Framework**,
    tying RAG + MCP + tools together into one agent.
 
-> This repo is being built out incrementally alongside the talk's slide
-> deck. Expect the data model, practices, and agent code to grow — this
-> initial commit is scaffolding only.
+The fictional customer seed includes **Betabit, Fenetre, Techorama,
+Contoso, and Fabrikam**. All contacts, contracts, and incidents are invented
+demo data, not claims about the named organizations.
 
 ## Tech stack
 
@@ -47,6 +47,8 @@ by [Jelle Fremery](https://www.techorama.nl/schedule/sessions/1241602).
 | `NICEDA.ServiceDefaults` | Shared Aspire service defaults (telemetry, health, resilience). |
 | `NICEDA.ApiService` | Backend API over the enterprise data. |
 | `NICEDA.Web` | Front-end / demo UI. |
+| `NICEDA.McpServer` | Separate HTTP MCP service exposing the governed follow-up action. |
+| `NICEDA.Tests` | Fast deterministic checks plus opt-in live Docker checks. |
 
 See [`AGENTS.md`](./AGENTS.md) for agent working agreements and
 [`docs/10-practices.md`](./docs/10-practices.md) for the practices
@@ -66,6 +68,87 @@ dotnet run
 Open the Aspire dashboard link printed in the console to see the running
 services and their logs/telemetry.
 
+### Tests
+
+```powershell
+dotnet test NICEDA.Tests
+```
+
+The normal suite requires neither Docker nor model credentials. Live
+SQL/Cosmos checks use the same running AppHost instead of booting another
+emulator for each test run. They are explicitly skipped unless enabled:
+
+```powershell
+$env:NICEDA_TEST_API_URL = "<apiservice HTTP endpoint from the dashboard>"
+$env:NICEDA_TEST_SQL = "<niceda connection string from the dashboard>"
+$env:NICEDA_TEST_COSMOS = "<ConnectionStrings__cosmos from apiservice's dashboard environment>"
+$env:NICEDA_TEST_MCP_URL = "<mcpserver HTTP endpoint from the dashboard>/mcp"
+dotnet test NICEDA.Tests --no-build --settings NICEDA.Tests\test.runsettings
+```
+
+Keep connection strings out of source control. The test runner has a
+four-minute overall deadline; live HTTP requests have a 20-second timeout.
+Build before starting the AppHost; running services lock their executable
+files on Windows, so live checks use `--no-build`.
+Start Docker before the talk: emulator cold-start is setup, not part of
+the five-minute demo.
+
+The data containers use persistent lifetime so restarting the AppHost
+reuses the warm containers. If the Linux Cosmos emulator never becomes
+ready, check its logs rather than waiting indefinitely: the vNext image
+can retain a stale PostgreSQL `postmaster.pid` after an abrupt stop.
+Repair that lock only after confirming no PostgreSQL process is running
+in that specific emulator container; never delete the data volume as a
+startup workaround.
+
+### Foundry configuration
+
+Data exploration and deterministic tests work without an LLM. Real chat
+and embeddings require a configured key; missing credentials produce an
+explicit unavailable response, never a simulated answer.
+
+```powershell
+dotnet user-secrets set "Foundry:ApiKey" "<rotated key>" --project NICEDA.AppHost
+dotnet user-secrets set "Foundry:Endpoint" "https://bblc-we-ai-foundry.services.ai.azure.com/" --project NICEDA.AppHost
+```
+
+Aspire passes these settings to the API. Defaults are chat model
+`gpt-6.1-sol` and embedding model `text-embedding-3-small`; override using
+`Foundry:ChatModel` and `Foundry:EmbeddingModel`. The endpoint is normalized
+to its OpenAI-compatible `/openai/v1` base. Rotate the key pasted into chat
+before using it for the talk.
+
+### Docker deployment
+
+The AppHost includes a Docker Compose publishing environment. With the
+Aspire CLI installed, publish using `aspire publish --environment compose`.
+Publishing generates the Compose definition with image/secret placeholders,
+not running containers. Use `aspire deploy --environment compose` to build
+images and run it. No manually-maintained Dockerfiles are required. Local
+`dotnet run` launches .NET services on the host and the two data stores in
+Docker. Startup waits at most two minutes for the stores and creates the
+demo SQL database when using Compose.
+
+### Five-minute demo beats
+
+1. **Before:** open Data Explorer, select Before, tour CRM's many fields,
+   SQL joins, inconsistent support JSON, and Legal folder paths.
+2. **After:** keep the customer/system selected and flip to After; show
+   business projections, classifications, concepts, and source IDs.
+3. **Agentic:** open Chat, ask the same question in each mode, then request
+   a follow-up. Show retrieved citations, tool traces, and Helpful/Not
+   helpful feedback. Jane sees her EU accounts; admin sees all.
+
+Chat interactions are held in memory; submit feedback before restarting
+the API. Feedback already submitted is durable in Cosmos, but a feedback
+submission for an interaction from before a restart is explicitly rejected
+as unknown.
+
+The user dropdown is **demo identity, not authentication**. The data
+explorer intentionally exposes the inventory to the presenter. Real
+deployment needs authenticated identities and protected internal API/MCP
+endpoints; do not expose this app publicly as-is.
+
 ## Repo tooling for Copilot CLI
 
 This repo ships a couple of small GitHub Copilot CLI aids used while
@@ -80,5 +163,7 @@ building the demo (not part of the demo app itself):
 
 ## Status
 
-🚧 Scaffolding stage. Next step: incorporate the presentation content to
-flesh out the data model, the 10 practices, and the RAG/MCP/agent demo.
+See [`docs/demo-plan.md`](./docs/demo-plan.md) for the three five-minute
+demo beats and [`docs/10-practices.md`](./docs/10-practices.md) for code
+bookmarks. SQL and Cosmos are real Docker-backed stores; CRM and Legal
+are deliberately mocked.

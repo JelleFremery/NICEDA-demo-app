@@ -47,14 +47,14 @@ Per your description, each system's "Before" shape:
 **Decision: duplicate data, one running app, UI toggle** (your chosen
 option). Concretely:
 
-- SQL Server container hosts two databases: `NicedaRaw` and
-  `NicedaOptimized` (same server/container, different connection strings).
-- Cosmos DB emulator hosts two Cosmos databases (or containers): raw vs
+- SQL Server container hosts one database, `niceda`, with `raw` and
+  `optimized` schemas (one connection string).
+- Cosmos DB emulator hosts one database with two support containers: raw vs
   optimized documents — optimized ones carry the metadata envelope from
   slide 7/24 (`customerId`, `classification`, `region`, `severity`, etc.)
   and are chunked by business concept (practice 7).
-- Mocked CRM/SharePoint ship two seed datasets each (raw vs optimized)
-  loaded at startup.
+- Mocked CRM/SharePoint ship one seed dataset each, with thin optimized
+  projections over those same records.
 - The Web UI has a **Before/After toggle** (global, persists across the
   data-explorer and the chat) that swaps which dataset/connection the API
   and agent use. This lets the same chat question be asked twice live —
@@ -132,7 +132,7 @@ Flagging this so it's not a surprise later.
   secrets / environment variables wired through Aspire — **never
   committed**. (You pasted a live key in chat; treat it as needing
   rotation once it's out of a chat transcript.)
-- **Orchestration**: Microsoft Agent Framework in `NICEDA.Agent`.
+- **Orchestration**: Microsoft Agent Framework in `NICEDA.ApiService`.
 - **RAG**: in-memory vector index (no extra container), built from the
   optimized Cosmos documents' chunks + embeddings; security filter applied
   before semantic search per practice 5.
@@ -153,17 +153,18 @@ Flagging this so it's not a surprise later.
   Before/After toggle as context so you can ask the identical question
   twice live and show the retrieval/action quality difference.
 
-## 7. Risks / open assumptions (flag before I start building)
+## 7. Operational caveats
 
 - **Cosmos DB emulator in Docker**: the Linux Cosmos DB emulator container
   is heavier and slower to start than SQL Server; first boot can take a
   couple of minutes. Fine for prep, but don't rely on a cold start during
   the live 50-minute slot — start Docker ahead of time.
-- **Microsoft Agent Framework** is a newer/evolving library; exact NuGet
-  package names and MCP integration APIs will be confirmed once I start
-  implementation (I'll verify current package names rather than guessing).
-- **Foundry key handling**: I'll wire it through `dotnet user-secrets` /
-  Aspire parameters, not into any file that gets committed.
+- **Microsoft Agent Framework** and the HTTP MCP transport are implemented
+  with pinned package versions and deterministic/transport checks.
+- **Foundry key handling**: configured through `dotnet user-secrets` /
+  secret Aspire parameters, never committed or baked into Compose output.
+  Rotate the exposed key before use. Live generation remains unverified
+  until a valid credential and the configured deployments are available.
 - Practice 10's shape is based on your chat clarification, not deck text —
   flagging in case you want to adjust the wording once it's actually in
   the slides.
@@ -179,6 +180,12 @@ Flagging this so it's not a surprise later.
   `dotnet build` and `dotnet test` before moving to the next slice.
   Practice 9 (deterministic test sets) isn't a final step — it's the habit
   the whole build follows.
+- **Fast test default**: normal `dotnet test` runs deterministic tests
+  without Docker or Foundry. Docker checks explicitly opt in against an
+  already-running AppHost; they do not cold-start/tear down containers per
+  run. `NICEDA.Tests/test.runsettings` imposes a four-minute run deadline,
+  and HTTP requests time out after 20 seconds. Skipped Docker checks are
+  reported explicitly, not counted as passed.
 - **Small commits**: one slice = one (or a few) commits, so the repo
   history narrates before → after → agentic, and so any step can be
   demoed/diffed in isolation if the talk runs long on Q&A.
@@ -209,3 +216,17 @@ Flagging this so it's not a surprise later.
 Each step gets its own commit(s) and a `docs/10-practices.md` update, so
 the repo history itself narrates the before→after→agentic arc for the
 talk.
+
+## 10. Implementation status
+
+All six slices are implemented: Before/After explorer, semantic/CQRS
+models, security-aware RAG, separate HTTP MCP service, Agent Framework
+chat, deterministic checks, deletion, and durable Cosmos feedback.
+Betabit, Fenetre, and Techorama are included in the fictional seed.
+
+Both host-service Aspire execution and all-service Linux Docker Compose
+execution have been exercised against real SQL and Cosmos. Warm-container
+integration checks finish in seconds; normal tests are offline, with
+explicit integration skips and a four-minute overall deadline. The
+remaining external dependency for a full live chat demo is a rotated
+Foundry credential and access to both configured model deployments.

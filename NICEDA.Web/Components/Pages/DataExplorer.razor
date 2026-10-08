@@ -1,105 +1,138 @@
 @page "/data-explorer"
-@attribute [StreamRendering(true)]
+@implements IDisposable
+@using System.Text.Json.Nodes
 @inject DataExplorerApiClient Api
+@inject DemoState Demo
 
-<PageTitle>Data Explorer</PageTitle>
-
-<h1>Data Explorer — "Before" state</h1>
-
-<p>
-    NICEDA Inc.'s data inventory (<code>// NICEDA-PRACTICE-1</code>) and the
-    raw shape of each system. Nothing here has been reshaped yet — that's
-    the point of the "Before" demo beat.
-</p>
-
-<div class="btn-group mb-3" role="group">
+<PageTitle>Data explorer — NICEDA</PageTitle>
+<h1>Data explorer</h1>
+<p>@(Demo.Mode == "before" ? "Before: human-friendly fields, raw joins and inconsistent documents." : "After: business concepts, customer health and classified knowledge.")</p>
+<div class="system-tabs" role="group" aria-label="Source system">
     @foreach (var system in Systems)
     {
-        <button type="button"
-                class="btn @(system == _selected ? "btn-primary" : "btn-outline-primary")"
-                @onclick="() => SelectAsync(system)">
-            @system
-        </button>
+        <button class="btn @(_selected == system ? "btn-primary" : "btn-outline-primary")"
+                disabled="@Demo.IsBusy" aria-pressed="@(_selected == system)"
+                @onclick="() => SelectAsync(system)">@system</button>
     }
+    <button class="btn btn-outline-secondary" disabled="@Demo.IsBusy"
+            @onclick="() => SelectAsync(_selected)">Refresh</button>
 </div>
-
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert"><strong>Could not load @_selected.</strong> @_error</div>
+}
 @if (_loading)
 {
-    <p><em>Loading...</em></p>
+    <p role="status">Loading @_selected…</p>
 }
-else if (_rows is null || _rows.Count == 0)
+else if (_error is null && _rows.Count == 0)
 {
-    <p><em>No data.</em></p>
+    <p>No records returned by the API.</p>
 }
-else
+else if (_error is null)
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                @foreach (var column in _columns)
-                {
-                    <th>@column</th>
-                }
-            </tr>
-        </thead>
-        <tbody>
+    <p class="text-secondary">@_rows.Count records · @_selected · @_loadedMode</p>
+    @if (_loadedMode == "before")
+    {
+        <div class="raw-table" tabindex="0" role="region" aria-label="Raw fields (scroll horizontally)">
+            <table class="table table-striped">
+                <thead><tr>@foreach (var column in _columns) { <th scope="col">@column</th> }</tr></thead>
+                <tbody>
+                    @foreach (var row in _rows)
+                    {
+                        <tr>@foreach (var column in _columns) { <td>@Display(row[column])</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="record-cards">
             @foreach (var row in _rows)
             {
-                <tr>
-                    @foreach (var column in _columns)
-                    {
-                        <td>@RenderCell(row, column)</td>
-                    }
-                </tr>
+                <article class="record-card">
+                    <h2>@Title(row)</h2>
+                    <dl>@foreach (var field in row) { <dt>@field.Key</dt><dd>@Display(field.Value)</dd> }</dl>
+                    <details><summary>API JSON</summary><pre>@Json(row)</pre></details>
+                </article>
             }
-        </tbody>
-    </table>
+        </div>
+    }
+    @if (_loadedMode == "before")
+    {
+        <details class="mt-3"><summary>Raw API JSON</summary><pre>@Json(_rows)</pre></details>
+    }
 }
 
 @code {
-    private static readonly string[] Systems =
-    [
-        "Data Inventory",
-        "CRM (mocked)",
-        "SQL — raw (real)",
-        "Cosmos — raw-support (real)",
-        "SharePoint (mocked)",
-    ];
-
+    private static readonly string[] Systems = ["CRM", "SQL", "Cosmos DB", "SharePoint"];
+    private readonly CancellationTokenSource _lifetime = new();
     private string _selected = Systems[0];
-    private bool _loading = true;
-    private List<System.Text.Json.Nodes.JsonObject>? _rows;
+    private string _loadedMode = "";
+    private bool _loading;
+    private bool _disposed;
+    private string? _error;
+    private List<JsonObject> _rows = [];
     private List<string> _columns = [];
 
-    protected override async Task OnInitializedAsync() => await SelectAsync(Systems[0]);
+    protected override async Task OnInitializedAsync()
+    {
+        Demo.Changed += OnChanged;
+        await SelectAsync(_selected);
+    }
+
+    private void OnChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed) return;
+            if (!_loading && _loadedMode != Demo.Mode)
+            {
+                var load = SelectAsync(_selected);
+                StateHasChanged();
+                await load;
+            }
+            if (!_disposed) StateHasChanged();
+        });
+    }
 
     private async Task SelectAsync(string system)
     {
         _selected = system;
+        _loadedMode = Demo.Mode;
         _loading = true;
-        _rows = system switch
+        _error = null;
+        _rows = [];
+        using var operation = Demo.BeginOperation();
+        try
         {
-            "Data Inventory" => await Api.GetDataInventoryAsync(),
-            "CRM (mocked)" => await Api.GetCrmCustomersAsync(),
-            "SQL — raw (real)" => await Api.GetSqlRawCustomersAsync(),
-            "Cosmos — raw-support (real)" => await Api.GetCosmosRawSupportAsync(),
-            "SharePoint (mocked)" => await Api.GetLegalDocumentsAsync(),
-            _ => null,
-        };
-
-        // Each system's rows may have different shapes (especially the raw
-        // Cosmos documents, on purpose) — build the column list from the
-        // union of whatever keys are actually present.
-        _columns = _rows?
-            .SelectMany(r => r.Select(kv => kv.Key))
-            .Distinct()
-            .ToList() ?? [];
-
-        _loading = false;
+            _rows = await Api.GetSystemAsync(system, _loadedMode, _lifetime.Token);
+            _columns = _rows.SelectMany(row => row.Select(field => field.Key)).Distinct().ToList();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
-    private static string RenderCell(System.Text.Json.Nodes.JsonObject row, string column) =>
-        row.TryGetPropertyValue(column, out var value) && value is not null
-            ? value.ToJsonString()
-            : "";
+    private static string Display(JsonNode? value) =>
+        value is JsonValue scalar && scalar.TryGetValue<string>(out var text) ? text : value?.ToJsonString() ?? "—";
+    private static string Json(object value) =>
+        System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    private static string Title(JsonObject row) =>
+        Display(row["customerName"] ?? row["title"] ?? row["name"] ?? row["customerId"] ?? row["id"]);
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Demo.Changed -= OnChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
 }

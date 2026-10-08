@@ -1,0 +1,26 @@
+@using System.Text.Json.Nodes
+
+@if (Value is null || Value is JsonArray { Count: 0 })
+{
+    <p class="text-secondary">None returned.</p>
+}
+else if (Value is JsonArray items)
+{
+    <ol>
+        @foreach (var item in items)
+        {
+            <li><pre>@Format(item)</pre></li>
+        }
+    </ol>
+}
+else
+{
+    <pre>@Format(Value)</pre>
+}
+
+@code {
+    [Parameter] public JsonNode? Value { get; set; }
+    private static string Format(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text) ? text
+            : node?.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) ?? "null";
+}

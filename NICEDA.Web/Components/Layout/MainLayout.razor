@@ -1,23 +1,41 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject DemoState Demo
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
+<div class="demo-shell">
+    <header class="demo-header">
+        <a class="demo-brand" href="/">NICEDA Inc.</a>
+        <nav aria-label="Demo navigation">
+            <NavLink href="data-explorer">Data explorer</NavLink>
+            <NavLink href="chat">Agent chat</NavLink>
+        </nav>
+        <fieldset disabled="@Demo.IsBusy" class="demo-context">
+            <legend class="visually-hidden">Shared demo context</legend>
+            <div class="btn-group" role="group" aria-label="Dataset mode">
+                <button type="button" class="btn @(Demo.Mode == "before" ? "btn-primary" : "btn-outline-primary")"
+                        aria-pressed="@(Demo.Mode == "before")" @onclick='() => Demo.SetMode("before")'>Before</button>
+                <button type="button" class="btn @(Demo.Mode == "after" ? "btn-primary" : "btn-outline-primary")"
+                        aria-pressed="@(Demo.Mode == "after")" @onclick='() => Demo.SetMode("after")'>After</button>
+            </div>
+            <label for="demo-user">Current user</label>
+            <select id="demo-user" class="form-select" value="@Demo.UserId"
+                    @onchange="e => Demo.SetUser(e.Value?.ToString() ?? string.Empty)">
+                <option value="jane">Jane — Customer Success (EU)</option>
+                <option value="admin">Admin — all customers</option>
+            </select>
+        </fieldset>
+    </header>
+    <main class="demo-content">@Body</main>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
+<div id="blazor-error-ui" role="alert">
+    The demo disconnected or encountered an unexpected error.
     <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
+    <a class="dismiss">×</a>
 </div>
+
+@code {
+    protected override void OnInitialized() => Demo.Changed += OnChanged;
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Demo.Changed -= OnChanged;
+}

@@ -44,9 +44,8 @@ find every live example.
 
 ## Status
 
-Finalized for implementation. As each practice lands in code, this file
-gains a short "where to look" pointer (file/tag) alongside its
-description.
+All ten practices have code bookmarks below. Live model responses require
+a configured Foundry credential; deterministic checks do not.
 
 - **Practice 1 (data inventory)** — ✅ `docs/data-inventory.md` plus the
   live "Before" seed: `NICEDA.ApiService/Crm`, `Sql/RawSqlSeeder.cs`,
@@ -57,5 +56,41 @@ description.
   `docs/agent-use-cases.md`, written before any retrieval/tool code; the
   3 use cases there drive the semantic layer and MCP tool design in later
   slices.
-- Practices 3–10: not yet implemented (slices 3–6, see
-  `docs/demo-plan.md` §9).
+- **Practice 3 (semantic layer)** — `Sql/OptimizedSqlSeeder.cs`,
+  `Sql/CustomerHealthQueries.cs`, `Crm/CustomerProfile.cs`,
+  `Legal/LegalKnowledge.cs`, and `DataInventory/SemanticGlossary.cs`.
+  The read view is over the original SQL rows, not a duplicated database.
+- **Practice 4 (ingestion classification)** and **Practice 7 (meaningful
+  chunks)** — `SupportDocs/OptimizedSupportSeeder.cs`. The three Contoso
+  security topics become individually addressable chunks with
+  classification, region, owner, retention, and source IDs.
+- **Practice 6 (deletion)** — `DataLifecycle/CustomerDeletionCommand.cs`.
+  SQL children are deleted transactionally, Cosmos documents by customer
+  partition; durable SQL deletion markers prevent seed resurrection.
+- **Practice 8 (CQRS)** — `Sql/CustomerHealthQueries.cs` and
+  `Sql/FollowUpTaskCommands.cs`. Validate named commands, query named read
+  models; never hand an agent a writable raw SQL interface.
+- **Practice 9 (deterministic checks)** — `NICEDA.Tests/SeedDataTests.cs`,
+  `SemanticProjectionTests.cs`, and `FollowUpValidationTests.cs` are fast
+  offline checks. `OptimizedLayerTests.cs` and `CustomerDeletionTests.cs`
+  explicitly opt into live SQL/Cosmos checks; the test runner has a
+  four-minute total deadline.
+- **Practice 5 (authorization before retrieval)** —
+  `Security/DemoIdentity.cs` and `Rag/KnowledgeSearchService.cs`.
+  Trusted identity filters candidates before cosine ranking, in both
+  modes. The Before demo exposes poor structure, not an intentional
+  authorization bypass. Security metadata is excluded from embeddings.
+- **RAG** — `Rag/FoundryEmbeddingService.cs` builds real embeddings from
+  Foundry. Offline deterministic tests inject an explicitly fake embedding
+  service; the running application never silently switches to it.
+- **Practice 10 (feedback)** — `Feedback/FeedbackService.cs` and
+  `Feedback/CosmosFeedbackStore.cs` retain structured outcomes, failures,
+  and interactions in a real Cosmos `feedback` container. Customer-linked
+  feedback and cached vectors participate in
+  `DataLifecycle/CustomerDataLifecycle.cs` deletion.
+- **Agent Framework and MCP** — `Agent/AgentChatService.cs` combines
+  retrieval, the customer-health read model, and the separate
+  `NICEDA.McpServer` follow-up tool. `GovernedTransportTests.cs` verifies
+  the real HTTP MCP action, identity scope, and Before-mode write denial.
+  `NICEDA.Web` shows the shared mode/identity, citations, traces, and
+  feedback controls.
