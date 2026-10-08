@@ -7,6 +7,11 @@
 <PageTitle>Agent chat — NICEDA</PageTitle>
 <h1>Agent chat</h1>
 <p>Ask the same question in Before and After. Answers, citations and tool outcomes come from the API, not the UI.</p>
+@if (Demo.Mode == "before")
+{
+    <p class="text-secondary">Before mode does not provide <code>get_customer_health</code>; use support knowledge to compare retrieval. The optimized health projection is available only in After mode.</p>
+}
+<p class="text-secondary"><strong>Admin example:</strong> Contoso is outside Jane's account scope. Select the admin demo identity to try Contoso.</p>
 <div class="sample-questions" role="group" aria-label="Sample questions">
     @foreach (var question in Questions)
     {
@@ -35,6 +40,12 @@
         <JsonResult Value='_response["citations"]' />
         <h3>Tool calls</h3>
         <JsonResult Value='_response["toolCalls"]' />
+        <h3>Action outcomes</h3>
+        <JsonResult Value='_response["actionOutcomes"]' />
+        @if (!string.IsNullOrWhiteSpace(_response["feedbackWarning"]?.ToString()))
+        {
+            <div class="alert alert-warning mt-2" role="alert">@_response["feedbackWarning"]</div>
+        }
         <details><summary>Full API response</summary><pre>@_response.ToJsonString(JsonOptions)</pre></details>
     </section>
     @if (!string.IsNullOrWhiteSpace(_interactionId))
@@ -56,8 +67,8 @@
     private static readonly string[] Questions =
     [
         "Which customers are at risk of renewal, and why?",
-        "Summarize Contoso's onboarding blockers with sources.",
-        "Create a follow-up task for Contoso's onboarding blockers."
+        "Summarize Techorama's onboarding blockers with sources.",
+        "Create a follow-up task for Techorama's onboarding blockers."
     ];
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly CancellationTokenSource _lifetime = new();
@@ -65,6 +76,8 @@
     private string _askedMessage = "";
     private string _requestMode = "";
     private string _requestUser = "";
+    private string? _pendingRequestKey;
+    private string? _pendingRequestContext;
     private string? _interactionId;
     private string _comment = "";
     private string? _error;
@@ -90,14 +103,25 @@
         _requestMode = Demo.Mode;
         _requestUser = Demo.UserId;
         _askedMessage = _message.Trim();
+        var requestContext = $"{_requestMode}\n{_requestUser}\n{_askedMessage}";
+        if (!string.Equals(_pendingRequestContext, requestContext, StringComparison.Ordinal))
+        {
+            _pendingRequestContext = requestContext;
+            _pendingRequestKey = Guid.NewGuid().ToString("N");
+        }
         using var operation = Demo.BeginOperation();
         try
         {
-            var response = await Api.ChatAsync(_askedMessage, _requestMode, _requestUser, _lifetime.Token);
+            var response = await Api.ChatAsync(_askedMessage, _requestMode, _requestUser, _pendingRequestKey!, _lifetime.Token);
             if (response["answer"] is null || string.IsNullOrWhiteSpace(Display(response["answer"])))
                 throw new InvalidOperationException("The chat API response did not include an answer. No result is being shown.");
             _response = response;
             _interactionId = response["interactionId"]?.ToString();
+            if (string.IsNullOrWhiteSpace(response["feedbackWarning"]?.ToString()))
+            {
+                _pendingRequestContext = null;
+                _pendingRequestKey = null;
+            }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)

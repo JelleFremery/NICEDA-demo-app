@@ -7,6 +7,7 @@ public static class AgentMcpContract
     public const string ToolName = "create_follow_up_task";
     public const string UserHeader = "X-Niceda-User";
     public const string ModeHeader = "X-Niceda-Mode";
+    public const string IdempotencyKeyHeader = "X-Niceda-Idempotency-Key";
     public const string CreateFollowUpTaskPath = "/api/data-explorer/sql/optimized/follow-up-tasks";
     public const string ChatPath = "/api/chat";
     public const string ChatFeedbackPath = "/api/chat/feedback";
@@ -28,10 +29,19 @@ public static class AgentMcpContract
         return true;
     }
 
-    public static IReadOnlySet<string> ToolNames { get; } = new HashSet<string>(StringComparer.Ordinal)
+    private static readonly IReadOnlySet<string> BeforeToolNames = new HashSet<string>(StringComparer.Ordinal)
+    {
+        SearchKnowledgeToolName,
+        ToolName,
+    };
+
+    private static readonly IReadOnlySet<string> AfterToolNames = new HashSet<string>(StringComparer.Ordinal)
     {
         SearchKnowledgeToolName,
         GetCustomerHealthToolName,
         ToolName,
     };
+
+    public static IReadOnlySet<string> GetToolNames(AgentMode mode) =>
+        mode == AgentMode.Before ? BeforeToolNames : AfterToolNames;
 }

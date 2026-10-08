@@ -33,9 +33,10 @@ public static class AgentChatEndpoints
             return Results.BadRequest(new { error = "Message is required and must not exceed 4000 characters." });
         }
 
-        if (!AgentModes.TryParse(request.Mode, out _) || string.IsNullOrWhiteSpace(request.UserId))
+        if (!AgentModes.TryParse(request.Mode, out _) || string.IsNullOrWhiteSpace(request.UserId) ||
+            string.IsNullOrWhiteSpace(request.RequestIdempotencyKey) || request.RequestIdempotencyKey.Length > 100)
         {
-            return Results.BadRequest(new { error = "A valid Before/After mode and userId are required." });
+            return Results.BadRequest(new { error = "A valid Before/After mode, userId, and 1-100 character request idempotency key are required." });
         }
 
         try
@@ -134,16 +135,30 @@ public static class AgentChatEndpoints
             request.CustomerId,
             request.Reason,
             request.DueDate,
-            identity.UserId);
+            identity.UserId,
+            httpContext.Request.Headers[AgentMcpContract.IdempotencyKeyHeader].ToString());
+        if (string.IsNullOrWhiteSpace(command.IdempotencyKey) || command.IdempotencyKey.Length > 100)
+        {
+            return Results.BadRequest(new { error = "A trusted 1-100 character idempotency key is required." });
+        }
         try
         {
-            var taskId = await FollowUpTaskCommands.CreateFollowUpTaskAsync(
+            var creation = await FollowUpTaskCommands.CreateFollowUpTaskWithResultAsync(
                 connection,
                 command,
                 cancellationToken);
-            return Results.Created(
-                $"{AgentMcpContract.CreateFollowUpTaskPath}/{taskId}",
-                new { FollowUpTaskId = taskId });
+            var body = new
+            {
+                FollowUpTaskId = creation.FollowUpTaskId,
+                Outcome = creation.Created ? "created" : "existing",
+            };
+            return creation.Created
+                ? Results.Created($"{AgentMcpContract.CreateFollowUpTaskPath}/{creation.FollowUpTaskId}", body)
+                : Results.Ok(body);
+        }
+        catch (IdempotencyKeyConflictException exception)
+        {
+            return Results.Conflict(new { error = exception.Message });
         }
         catch (ArgumentException exception)
         {

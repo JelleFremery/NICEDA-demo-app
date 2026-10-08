@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
+using NICEDA.ApiService.DataLifecycle;
 using NICEDA.ApiService.Sql;
 using NICEDA.ApiService.SupportDocs;
 
@@ -40,6 +41,12 @@ public sealed class SeedDataHostedService(
 
         logger.LogInformation("Creating optimized SQL schema (view + command table)...");
         await optimizedSqlSeeder.EnsureCreatedAsync(connection, cancellationToken);
+
+        // Durable markers survive a process restart. Finish every cross-store
+        // deletion before seeding support data or declaring startup ready.
+        logger.LogInformation("Reconciling marked customer deletions...");
+        await scope.ServiceProvider.GetRequiredService<CustomerDataLifecycle>()
+            .ReconcilePendingDeletionsAsync(cancellationToken);
 
         var customerIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         await using (var command = new SqlCommand("SELECT CustomerId FROM raw.Customer;", connection))

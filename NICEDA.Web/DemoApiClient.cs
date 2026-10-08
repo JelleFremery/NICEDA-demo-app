@@ -4,11 +4,11 @@ namespace NICEDA.Web;
 
 public sealed class DemoApiClient(HttpClient httpClient)
 {
-    public async Task<JsonObject> ChatAsync(string message, string mode, string userId,
+    public async Task<JsonObject> ChatAsync(string message, string mode, string userId, string requestIdempotencyKey,
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.PostAsJsonAsync("/api/chat",
-            new { message, mode, userId }, cancellationToken);
+            new { message, mode, userId, requestIdempotencyKey }, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken)
             ?? throw new InvalidOperationException("The chat API returned an empty response.");

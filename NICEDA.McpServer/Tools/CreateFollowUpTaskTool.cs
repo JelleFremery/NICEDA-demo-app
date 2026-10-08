@@ -14,6 +14,7 @@ public sealed class CreateFollowUpTaskTool(
 {
     private const string UserHeader = "X-Niceda-User";
     private const string ModeHeader = "X-Niceda-Mode";
+    private const string IdempotencyKeyHeader = "X-Niceda-Idempotency-Key";
     private const string CreateFollowUpTaskPath = "/api/data-explorer/sql/optimized/follow-up-tasks";
 
     [McpServerTool(Name = "create_follow_up_task")]
@@ -30,9 +31,11 @@ public sealed class CreateFollowUpTaskTool(
         // A deployed system must authenticate this service boundary rather than trust demo headers.
         var userId = context.Request.Headers[UserHeader].ToString();
         var mode = context.Request.Headers[ModeHeader].ToString();
-        if (string.IsNullOrWhiteSpace(userId) || !IsKnownMode(mode))
+        var idempotencyKey = context.Request.Headers[IdempotencyKeyHeader].ToString();
+        if (string.IsNullOrWhiteSpace(userId) || !IsKnownMode(mode) ||
+            string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 100)
         {
-            throw new InvalidOperationException("Trusted NICEDA user and dataset context headers are required.");
+            throw new InvalidOperationException("Trusted NICEDA user, dataset, and request idempotency context are required.");
         }
 
         var allowedCustomerIds = userId.Equals("admin", StringComparison.OrdinalIgnoreCase)
@@ -82,14 +85,26 @@ public sealed class CreateFollowUpTaskTool(
         };
         apiRequest.Headers.Add(UserHeader, userId);
         apiRequest.Headers.Add(ModeHeader, mode);
+        apiRequest.Headers.Add(IdempotencyKeyHeader, idempotencyKey);
         using var response = await client.SendAsync(
             apiRequest,
             cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Follow-up task API returned {(int)response.StatusCode}: {detail}");
+        }
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var body = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var taskId = body.RootElement.GetProperty("followUpTaskId").GetInt32();
-        return $"Created follow-up task {taskId} for {customerId}, due {dueDate:yyyy-MM-dd}.";
+        var outcome = body.RootElement.GetProperty("outcome").GetString();
+        return JsonSerializer.Serialize(new
+        {
+            followUpTaskId = taskId,
+            outcome,
+            customerId,
+            dueDate,
+        });
     }
 
     private static bool IsKnownMode(string mode) =>

@@ -36,6 +36,34 @@ public sealed class AgentContractTests
         Assert.True(DemoIdentity.Resolve("admin").CanAccess("contoso", "NA"));
     }
 
+    [Theory]
+    [InlineData("Jane", "jane")]
+    [InlineData("jane.okafor@niceda.example", "jane")]
+    [InlineData("administrator", "admin")]
+    public void DemoIdentity_AliasesHaveCanonicalIdentityForIdempotency(string alias, string expected)
+    {
+        Assert.Equal(expected, DemoIdentity.Resolve(alias).UserId);
+    }
+
+    [Fact]
+    public void McpActionOutcome_ReadsConfirmedTaskIdFromNestedTextContent()
+    {
+        var result = new
+        {
+            content = new[] { new { type = "text", text = "{\"outcome\":\"existing\",\"followUpTaskId\":42}" } }
+        };
+        var outcome = AgentChatService.ReadActionOutcome(result, "techorama");
+        Assert.Equal(42, outcome.FollowUpTaskId);
+        Assert.Equal("existing", outcome.Outcome);
+    }
+
+    [Fact]
+    public void McpActionOutcome_RejectsMissingConfirmationInsteadOfAssumingSuccess()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            AgentChatService.ReadActionOutcome(new { content = "Task creation requested." }, "techorama"));
+    }
+
     [Fact]
     public void FoundryConfiguration_RequiresEndpointAndCredential()
     {
@@ -71,14 +99,18 @@ public sealed class AgentContractTests
         var knowledge = new KnowledgeSearchService(
             new UnusedKnowledgeSource(),
             new UnusedEmbeddingService());
+        var feedback = new FeedbackService(new UnusedFeedbackStore());
         var agent = new AgentChatService(
             new ConfigurationBuilder().Build(),
             provider.GetRequiredService<IServiceScopeFactory>(),
             knowledge,
-            new FeedbackService(new UnusedFeedbackStore()));
+            feedback,
+            new AgentChatOutcomeRecorder(
+                feedback,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentChatOutcomeRecorder>.Instance));
 
         var result = await AgentChatEndpoints.HandleAsync(
-            new AgentChatRequest("After", "jane", "Summarize the account."),
+            new AgentChatRequest("After", "jane", "Summarize the account.", "test-key"),
             agent,
             CancellationToken.None);
 
@@ -220,11 +252,15 @@ public sealed class AgentContractTests
         var knowledge = new KnowledgeSearchService(
             new UnusedKnowledgeSource(),
             new UnusedEmbeddingService());
+        var feedback = new FeedbackService(store ?? new UnusedFeedbackStore());
         return new AgentChatService(
             configuration,
             provider.GetRequiredService<IServiceScopeFactory>(),
             knowledge,
-            new FeedbackService(store ?? new UnusedFeedbackStore()));
+            feedback,
+            new AgentChatOutcomeRecorder(
+                feedback,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentChatOutcomeRecorder>.Instance));
     }
 
     [Fact]
@@ -232,6 +268,43 @@ public sealed class AgentContractTests
     {
         Assert.Equal("/api/chat", AgentMcpContract.ChatPath);
         Assert.Equal("/api/chat/feedback", AgentMcpContract.ChatFeedbackPath);
+    }
+
+    [Fact]
+    public void AgentToolContract_OmitsOptimizedHealthReadInBefore()
+    {
+        Assert.DoesNotContain(AgentMcpContract.GetCustomerHealthToolName,
+            AgentMcpContract.GetToolNames(AgentMode.Before));
+        Assert.Contains(AgentMcpContract.GetCustomerHealthToolName,
+            AgentMcpContract.GetToolNames(AgentMode.After));
+    }
+
+    [Fact]
+    public async Task ChatOutcome_IsReturnedWithWarningWhenFeedbackPersistenceFails()
+    {
+        var recorder = new AgentChatOutcomeRecorder(
+            new FeedbackService(new FailingFeedbackStore()),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentChatOutcomeRecorder>.Instance);
+        var completedAction = new AgentChatResponse(
+            "Task created.",
+            [],
+            [new AgentToolTrace("create_follow_up_task", "completed", "Task 42: created")],
+            "interaction-id",
+            [new AgentActionOutcome("create_follow_up_task", "created", 42, "Customer techorama")]);
+
+        var result = await recorder.RecordAsync(
+            completedAction,
+            "jane",
+            "After",
+            AgentChatService.ChatUseCase,
+            [new AgentChatService.TouchedCustomer("techorama", ["create_follow_up_task"])],
+            "Create a follow-up.",
+            CancellationToken.None);
+
+        Assert.Equal("Task created.", result.Answer);
+        Assert.Equal(42, Assert.Single(result.ActionOutcomes).FollowUpTaskId);
+        Assert.Contains("feedback persistence failed", result.FeedbackWarning, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("completed", Assert.Single(result.ToolCalls).Status);
     }
 
     private sealed class UnusedKnowledgeSource : IKnowledgeDocumentSource
@@ -256,5 +329,14 @@ public sealed class AgentContractTests
 
         public Task DeleteCustomerAsync(string customerId, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("The offline chat test must not delete feedback.");
+    }
+
+    private sealed class FailingFeedbackStore : IFeedbackStore
+    {
+        public Task SaveAsync(FeedbackRecord record, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Injected feedback storage failure.");
+
+        public Task DeleteCustomerAsync(string customerId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

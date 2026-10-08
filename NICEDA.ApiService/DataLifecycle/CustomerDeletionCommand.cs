@@ -18,10 +18,97 @@ namespace NICEDA.ApiService.DataLifecycle;
 /// </summary>
 public static class CustomerDeletionCommand
 {
+    public static async Task<IReadOnlyList<string>> GetDeletedCustomerIdsAsync(
+        SqlConnection sqlConnection, CancellationToken cancellationToken = default)
+    {
+        if (sqlConnection.State != System.Data.ConnectionState.Open)
+        {
+            await sqlConnection.OpenAsync(cancellationToken);
+        }
+
+        var customerIds = new List<string>();
+        await using var command = new SqlCommand(
+            "SELECT CustomerId FROM raw.DeletedCustomer ORDER BY CustomerId;", sqlConnection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            customerIds.Add(reader.GetString(0));
+        }
+
+        return customerIds;
+    }
+
+    public static async Task EnsureCustomerIsNotDeletedAsync(
+        SqlConnection sqlConnection, string customerId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
+        if (customerId.Trim().Length > 50)
+            throw new ArgumentException("CustomerId cannot exceed 50 characters.", nameof(customerId));
+        if (sqlConnection.State != System.Data.ConnectionState.Open)
+        {
+            await sqlConnection.OpenAsync(cancellationToken);
+        }
+
+        await using var command = new SqlCommand(
+            "SELECT COUNT(*) FROM raw.DeletedCustomer WHERE CustomerId=@customerId;", sqlConnection);
+        command.Parameters.AddWithValue("@customerId", customerId.Trim().ToLowerInvariant());
+        if ((int)(await command.ExecuteScalarAsync(cancellationToken))! > 0)
+        {
+            throw new InvalidOperationException(
+                $"Customer '{customerId}' is marked for deletion; customer-linked writes are not allowed.");
+        }
+    }
+
+    public static async Task ExecuteCustomerWriteIfNotDeletedAsync(
+        SqlConnection sqlConnection,
+        string customerId,
+        Func<CancellationToken, Task> writeAsync,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
+        ArgumentNullException.ThrowIfNull(writeAsync);
+        customerId = customerId.Trim().ToLowerInvariant();
+        if (customerId.Length > 50)
+            throw new ArgumentException("CustomerId cannot exceed 50 characters.", nameof(customerId));
+
+        if (sqlConnection.State != System.Data.ConnectionState.Open)
+        {
+            await sqlConnection.OpenAsync(cancellationToken);
+        }
+
+        await using var transaction =
+            (SqlTransaction)await sqlConnection.BeginTransactionAsync(cancellationToken);
+        await AcquireCustomerLifecycleLockAsync(
+            sqlConnection, transaction, customerId, cancellationToken);
+
+        await using (var command = new SqlCommand(
+            "SELECT COUNT(*) FROM raw.DeletedCustomer WHERE CustomerId=@customerId;",
+            sqlConnection, transaction))
+        {
+            command.Parameters.AddWithValue("@customerId", customerId);
+            if ((int)(await command.ExecuteScalarAsync(cancellationToken))! > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Customer '{customerId}' is marked for deletion; customer-linked writes are not allowed.");
+            }
+        }
+
+        await writeAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     public static async Task DeleteCustomerDataAsync(
         SqlConnection sqlConnection,
         CosmosClient cosmosClient,
         string customerId,
+        CancellationToken cancellationToken = default) =>
+        await DeleteCustomerDataAsync(sqlConnection, cosmosClient, customerId, null, cancellationToken);
+
+    internal static async Task DeleteCustomerDataAsync(
+        SqlConnection sqlConnection,
+        CosmosClient cosmosClient,
+        string customerId,
+        Func<CancellationToken, Task>? afterSqlCommitAsync,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(customerId))
@@ -33,6 +120,10 @@ public static class CustomerDeletionCommand
         customerId = customerId.Trim().ToLowerInvariant();
 
         await DeleteSqlDataAsync(sqlConnection, customerId, cancellationToken);
+        if (afterSqlCommitAsync is not null)
+        {
+            await afterSqlCommitAsync(cancellationToken);
+        }
         await DeleteCosmosContainerDataAsync(cosmosClient, "raw-support", customerId, cancellationToken);
         await DeleteCosmosContainerDataAsync(cosmosClient, "optimized-support", customerId, cancellationToken);
     }
@@ -60,10 +151,47 @@ public static class CustomerDeletionCommand
             """;
 
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        await AcquireCustomerLifecycleLockAsync(connection, transaction, customerId, cancellationToken);
         await using var command = new SqlCommand(sql, connection, transaction);
         command.Parameters.AddWithValue("@customerId", customerId);
         await command.ExecuteNonQueryAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    public static async Task AcquireCustomerLifecycleLockAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        string customerId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
+        if (!ReferenceEquals(transaction.Connection, connection))
+            throw new ArgumentException("The transaction must belong to the supplied connection.", nameof(transaction));
+        customerId = customerId.Trim().ToLowerInvariant();
+        if (customerId.Length > 50)
+            throw new ArgumentException("CustomerId cannot exceed 50 characters.", nameof(customerId));
+
+        await using var command = new SqlCommand(
+            """
+            DECLARE @result INT;
+            EXEC @result = sys.sp_getapplock
+                @Resource = @resource,
+                @LockMode = 'Exclusive',
+                @LockOwner = 'Transaction',
+                @LockTimeout = 30000;
+            SELECT @result;
+            """,
+            connection,
+            transaction);
+        command.Parameters.AddWithValue("@resource", $"NICEDA:CustomerLifecycle:{customerId}");
+        var result = (int)(await command.ExecuteScalarAsync(cancellationToken))!;
+        if (result < 0)
+        {
+            throw new InvalidOperationException(
+                $"Could not acquire the customer lifecycle lock for '{customerId}' (SQL result {result}).");
+        }
     }
 
     private static async Task DeleteCosmosContainerDataAsync(

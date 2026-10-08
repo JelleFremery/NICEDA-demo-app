@@ -21,4 +21,19 @@ public class FollowUpValidationTests
         Assert.Throws<ArgumentException>(() => FollowUpTaskCommands.Validate(valid with { Reason = new string('x', 501) }));
         Assert.Throws<ArgumentException>(() => FollowUpTaskCommands.Validate(valid with { DueDate = valid.DueDate.AddDays(-10) }));
     }
+
+    [Fact]
+    public void IdempotencyKeyMustBeBoundedWhenSupplied()
+    {
+        var valid = new CreateFollowUpTaskCommand(
+            "betabit",
+            "Check renewal",
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
+            "jane",
+            "request-1");
+
+        FollowUpTaskCommands.Validate(valid);
+        Assert.Throws<ArgumentException>(() => FollowUpTaskCommands.Validate(valid with { IdempotencyKey = " " }));
+        Assert.Throws<ArgumentException>(() => FollowUpTaskCommands.Validate(valid with { IdempotencyKey = new string('x', 101) }));
+    }
 }

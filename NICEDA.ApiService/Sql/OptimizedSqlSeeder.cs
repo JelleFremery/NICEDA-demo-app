@@ -65,9 +65,22 @@ public sealed class OptimizedSqlSeeder
             Reason NVARCHAR(500) NOT NULL,
             DueDate DATE NOT NULL,
             CreatedBy NVARCHAR(200) NOT NULL,
+            IdempotencyKey NVARCHAR(100) NULL,
             CreatedAtUtc DATETIME2 NOT NULL,
             IsCompleted BIT NOT NULL DEFAULT 0
         );
+        """,
+        """
+        IF COL_LENGTH('optimized.FollowUpTask', 'IdempotencyKey') IS NULL
+            ALTER TABLE optimized.FollowUpTask ADD IdempotencyKey NVARCHAR(100) NULL;
+        """,
+        """
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes
+            WHERE name = 'UX_FollowUpTask_CreatedBy_IdempotencyKey'
+              AND object_id = OBJECT_ID('optimized.FollowUpTask'))
+            CREATE UNIQUE INDEX UX_FollowUpTask_CreatedBy_IdempotencyKey
+                ON optimized.FollowUpTask (CreatedBy, IdempotencyKey)
+                WHERE IdempotencyKey IS NOT NULL;
         """,
     ];
 

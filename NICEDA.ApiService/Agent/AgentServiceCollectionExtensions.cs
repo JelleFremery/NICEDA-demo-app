@@ -8,6 +8,7 @@ public static class AgentServiceCollectionExtensions
     {
         // Idempotent (TryAdd): singleton RAG search, embeddings, and feedback store/service.
         services.AddNicedaRagAndFeedback();
+        services.AddSingleton<AgentChatOutcomeRecorder>();
         services.AddSingleton<AgentChatService>();
         return services;
     }

@@ -31,6 +31,8 @@ public class GovernedTransportTests(AppHostFixture fixture)
         client.DefaultRequestHeaders.Accept.ParseAdd("text/event-stream");
         client.DefaultRequestHeaders.Add("X-Niceda-User", "jane");
         client.DefaultRequestHeaders.Add("X-Niceda-Mode", "After");
+        var idempotencyKey = $"mcp-integration-{Guid.NewGuid():N}";
+        client.DefaultRequestHeaders.Add("X-Niceda-Idempotency-Key", idempotencyKey);
         var initialized = await SendAsync(client, "initialize", new
         {
             protocolVersion = "2025-06-18",
@@ -52,7 +54,29 @@ public class GovernedTransportTests(AppHostFixture fixture)
                 arguments = new { customerId = "techorama", reason, dueDate = due },
             }, deadline.Token);
             Assert.False(IsError(created));
+            var createdTaskId = ReadFollowUpTaskId(created);
             var tasks = await fixture.ApiClient.GetFromJsonAsync<List<FollowUpTask>>(
+                "/api/data-explorer/sql/optimized/follow-up-tasks", deadline.Token);
+            Assert.Single(tasks!, t => t.Reason == reason && t.CreatedBy == "jane");
+
+            var retry = await SendAsync(client, "tools/call", new
+            {
+                name = "create_follow_up_task",
+                arguments = new { customerId = "techorama", reason, dueDate = due },
+            }, deadline.Token);
+            Assert.False(IsError(retry));
+            Assert.Equal(createdTaskId, ReadFollowUpTaskId(retry));
+            tasks = await fixture.ApiClient.GetFromJsonAsync<List<FollowUpTask>>(
+                "/api/data-explorer/sql/optimized/follow-up-tasks", deadline.Token);
+            Assert.Single(tasks!, t => t.Reason == reason && t.CreatedBy == "jane");
+
+            var conflict = await SendAsync(client, "tools/call", new
+            {
+                name = "create_follow_up_task",
+                arguments = new { customerId = "techorama", reason = $"{reason} changed", dueDate = due },
+            }, deadline.Token);
+            Assert.True(IsError(conflict));
+            tasks = await fixture.ApiClient.GetFromJsonAsync<List<FollowUpTask>>(
                 "/api/data-explorer/sql/optimized/follow-up-tasks", deadline.Token);
             Assert.Single(tasks!, t => t.Reason == reason && t.CreatedBy == "jane");
 
@@ -74,10 +98,34 @@ public class GovernedTransportTests(AppHostFixture fixture)
         finally
         {
             await using var cleanup = new SqlCommand(
-                "DELETE FROM optimized.FollowUpTask WHERE Reason=@reason AND CreatedBy='jane';", sql);
-            cleanup.Parameters.AddWithValue("@reason", reason);
+                "DELETE FROM optimized.FollowUpTask WHERE IdempotencyKey=@idempotencyKey AND CreatedBy='jane';", sql);
+            cleanup.Parameters.AddWithValue("@idempotencyKey", idempotencyKey);
             await cleanup.ExecuteNonQueryAsync();
         }
+    }
+
+    private static int ReadFollowUpTaskId(JsonElement message)
+    {
+        var result = message.GetProperty("result");
+        if (result.TryGetProperty("structuredContent", out var structured) &&
+            structured.TryGetProperty("followUpTaskId", out var structuredId))
+        {
+            return structuredId.GetInt32();
+        }
+
+        foreach (var item in result.GetProperty("content").EnumerateArray())
+        {
+            if (item.TryGetProperty("text", out var text))
+            {
+                using var document = JsonDocument.Parse(text.GetString()!);
+                if (document.RootElement.TryGetProperty("followUpTaskId", out var taskId))
+                {
+                    return taskId.GetInt32();
+                }
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException("The MCP action response did not expose a follow-up task ID.");
     }
 
     private static bool IsError(JsonElement message) =>

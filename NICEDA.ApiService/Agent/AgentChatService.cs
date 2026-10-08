@@ -16,7 +16,8 @@ public sealed class AgentChatService(
     IConfiguration configuration,
     IServiceScopeFactory scopeFactory,
     KnowledgeSearchService knowledgeSearch,
-    FeedbackService feedbackService)
+    FeedbackService feedbackService,
+    AgentChatOutcomeRecorder outcomeRecorder)
 {
     private readonly ConcurrentDictionary<string, ChatInteraction> _interactions = new(StringComparer.Ordinal);
 
@@ -30,6 +31,10 @@ public sealed class AgentChatService(
         if (!AgentModes.TryParse(request.Mode, out var mode))
         {
             throw new ArgumentException("Mode must be Before or After.", nameof(request));
+        }
+        if (string.IsNullOrWhiteSpace(request.RequestIdempotencyKey) || request.RequestIdempotencyKey.Length > 100)
+        {
+            throw new ArgumentException("A request idempotency key of 1-100 characters is required.", nameof(request));
         }
 
         var identity = DemoIdentity.Resolve(request.UserId);
@@ -46,6 +51,7 @@ public sealed class AgentChatService(
             {
                 [AgentMcpContract.UserHeader] = identity.UserId,
                 [AgentMcpContract.ModeHeader] = mode.ToString(),
+                [AgentMcpContract.IdempotencyKeyHeader] = request.RequestIdempotencyKey,
             },
         }), cancellationToken: cancellationToken);
 
@@ -58,6 +64,7 @@ public sealed class AgentChatService(
 
         var citations = new ConcurrentQueue<KnowledgeCitation>();
         var traces = new ConcurrentQueue<AgentToolTrace>();
+        var actionOutcomes = new ConcurrentQueue<AgentActionOutcome>();
         var touchedCustomers = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte>>(StringComparer.OrdinalIgnoreCase);
 
         void Touch(string? customerId, string source)
@@ -110,17 +117,37 @@ public sealed class AgentChatService(
             string customerId, string reason, DateOnly dueDate, CancellationToken ct)
         {
             traces.Enqueue(new AgentToolTrace(AgentMcpContract.ToolName, "started", customerId));
-            var result = await mcpTool.InvokeAsync(
-                new AIFunctionArguments
-                {
-                    ["customerId"] = customerId,
-                    ["reason"] = reason,
-                    ["dueDate"] = dueDate,
-                },
-                ct);
-            Touch(customerId, AgentMcpContract.ToolName);
-            traces.Enqueue(new AgentToolTrace(AgentMcpContract.ToolName, "completed", customerId));
-            return result;
+            try
+            {
+                var result = await mcpTool.InvokeAsync(
+                    new AIFunctionArguments
+                    {
+                        ["customerId"] = customerId,
+                        ["reason"] = reason,
+                        ["dueDate"] = dueDate,
+                    },
+                    ct);
+                var outcome = ReadActionOutcome(result, customerId);
+                actionOutcomes.Enqueue(outcome);
+                Touch(customerId, AgentMcpContract.ToolName);
+                traces.Enqueue(new AgentToolTrace(
+                    AgentMcpContract.ToolName,
+                    "completed",
+                    outcome.FollowUpTaskId is int taskId
+                        ? $"Task {taskId}: {outcome.Outcome}"
+                        : $"{outcome.Outcome} for {customerId}"));
+                return result;
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                actionOutcomes.Enqueue(new AgentActionOutcome(
+                    AgentMcpContract.ToolName,
+                    "failed",
+                    null,
+                    exception.Message));
+                traces.Enqueue(new AgentToolTrace(AgentMcpContract.ToolName, "failed", exception.Message));
+                throw;
+            }
         }
 
         var tools = new List<AITool>
@@ -130,49 +157,116 @@ public sealed class AgentChatService(
                 AgentMcpContract.SearchKnowledgeToolName,
                 "Search security-filtered support knowledge for the selected dataset."),
             AIFunctionFactory.Create(
-                (Func<string?, CancellationToken, Task<object>>)GetCustomerHealthAsync,
-                AgentMcpContract.GetCustomerHealthToolName,
-                "Read customer health from the governed optimized customer health view."),
-            AIFunctionFactory.Create(
                 (Func<string, string, DateOnly, CancellationToken, Task<object?>>)CreateFollowUpTaskAsync,
                 AgentMcpContract.ToolName,
                 mcpTool.Description),
         };
-        if (tools.Count != AgentMcpContract.ToolNames.Count ||
-            !AgentMcpContract.ToolNames.SetEquals(tools.Select(tool => tool.Name)))
+        if (mode == AgentMode.After)
         {
-            throw new InvalidOperationException("The NICEDA agent must expose exactly the three governed tools.");
+            tools.Add(AIFunctionFactory.Create(
+                (Func<string?, CancellationToken, Task<object>>)GetCustomerHealthAsync,
+                AgentMcpContract.GetCustomerHealthToolName,
+                "Read customer health from the governed optimized customer health view. This tool is available only in After mode."));
+        }
+        var expectedToolNames = AgentMcpContract.GetToolNames(mode);
+        if (tools.Count != expectedToolNames.Count || !expectedToolNames.SetEquals(tools.Select(tool => tool.Name)))
+        {
+            throw new InvalidOperationException($"The NICEDA {mode} agent has an unexpected tool set.");
         }
 
         var client = new OpenAIClient(
             new System.ClientModel.ApiKeyCredential(foundry!.ApiKey),
             new OpenAIClientOptions { Endpoint = foundry.Endpoint });
+        var healthToolInstruction = mode == AgentMode.Before
+            ? "The get_customer_health capability is unavailable in Before mode; do not imply that an optimized health projection was queried."
+            : "Use get_customer_health for the governed optimized health projection when appropriate.";
         var agent = client.GetChatClient(foundry.ChatModel).AsIChatClient().AsAIAgent(
-            instructions: $"You are NICEDA's customer-success assistant. Current account: {identity.DisplayName}. Dataset mode: {mode}. Use the provided tools to ground answers or create follow-up tasks. Never claim an action succeeded unless the tool confirms it. Cite supporting knowledge document IDs in your answer.",
+            instructions: $"You are NICEDA's customer-success assistant. Current account: {identity.DisplayName}. Dataset mode: {mode}. Use the provided tools to ground answers or create follow-up tasks. {healthToolInstruction} Never claim an action succeeded unless the tool confirms it. Cite supporting knowledge document IDs in your answer.",
             tools: tools);
 
         var response = await agent.RunAsync(request.Message, cancellationToken: cancellationToken);
         var interactionId = Guid.NewGuid().ToString("N");
-        var result = new AgentChatResponse(
-            response.Text,
-            citations.DistinctBy(citation => citation.DocumentId).ToArray(),
-            traces.ToArray(),
-            interactionId);
         var customers = touchedCustomers
             .Select(pair => new TouchedCustomer(pair.Key, pair.Value.Keys.Order(StringComparer.Ordinal).ToArray()))
             .OrderBy(customer => customer.CustomerId, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var result = new AgentChatResponse(
+            response.Text,
+            citations.DistinctBy(citation => citation.DocumentId).ToArray(),
+            traces.ToArray(),
+            interactionId,
+            actionOutcomes.ToArray());
         _interactions[interactionId] = new ChatInteraction(identity.UserId, mode.ToString(), ChatUseCase, customers);
-        await RecordPerCustomerAsync(
+        return await outcomeRecorder.RecordAsync(
+            result,
             identity.UserId,
             mode.ToString(),
             ChatUseCase,
-            interactionId,
             customers,
-            result.ToolCalls.LastOrDefault()?.Status,
             request.Message,
             cancellationToken);
-        return result;
+    }
+
+    public static AgentActionOutcome ReadActionOutcome(object? result, string customerId)
+    {
+        var json = JsonSerializer.SerializeToElement(result);
+        var outcome = FindJsonValue(json, "outcome")?.GetString();
+        var taskId = FindJsonValue(json, "followUpTaskId");
+        if (outcome is not ("created" or "existing")
+            || taskId is null || !taskId.Value.TryGetInt32(out var parsedTaskId) || parsedTaskId <= 0)
+        {
+            throw new InvalidOperationException(
+                "The MCP action did not return a confirmed outcome and positive task ID. Check the persisted task before retrying with a new key.");
+        }
+        return new AgentActionOutcome(
+            AgentMcpContract.ToolName,
+            outcome,
+            parsedTaskId,
+            $"Customer {customerId}");
+    }
+
+    private static JsonElement? FindJsonValue(JsonElement element, string name)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.NameEquals(name))
+                {
+                    return property.Value;
+                }
+                var nested = FindJsonValue(property.Value, name);
+                if (nested is not null)
+                {
+                    return nested;
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                var nested = FindJsonValue(item, name);
+                if (nested is not null)
+                {
+                    return nested;
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.String)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(element.GetString()!);
+                var nested = FindJsonValue(document.RootElement, name);
+                return nested?.Clone();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+        return null;
     }
 
     public async Task RecordFeedbackAsync(AgentFeedbackRequest request, CancellationToken cancellationToken)
