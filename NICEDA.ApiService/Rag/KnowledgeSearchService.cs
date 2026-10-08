@@ -8,8 +8,7 @@ public sealed class KnowledgeSearchService(
     IEmbeddingService embeddingService)
 {
     private readonly SemaphoreSlim _indexLock = new(1, 1);
-    private readonly Dictionary<string, List<IndexedDocument>> _indexes =
-        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<(string Mode, string Scope), List<IndexedDocument>> _indexes = [];
 
     // NICEDA-PRACTICE-6: in-process tombstones stop a concurrent or later lazy
     // index build from resurrecting a deleted customer's documents.
@@ -24,7 +23,7 @@ public sealed class KnowledgeSearchService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
         var identity = DemoIdentity.Resolve(userId);
-        var index = await GetOrBuildIndexAsync(mode, cancellationToken);
+        var index = await GetOrBuildIndexAsync(mode, identity, cancellationToken);
         var authorizedCandidates = index
             .Where(entry => !IsDeleted(entry.Document.CustomerId)
                 && identity.CanAccess(entry.Document.CustomerId, entry.Document.Region))
@@ -37,6 +36,7 @@ public sealed class KnowledgeSearchService(
 
         var queryVector = await embeddingService.EmbedAsync(question, cancellationToken);
         return authorizedCandidates
+            .Where(entry => !IsDeleted(entry.Document.CustomerId))
             .Select(entry => new KnowledgeSearchResult(
                 entry.Document.Id,
                 entry.Document.CustomerId,
@@ -53,14 +53,14 @@ public sealed class KnowledgeSearchService(
         string customerId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
-        _deletedCustomerIds.TryAdd(customerId, 0);
+        _deletedCustomerIds.TryAdd(customerId.Trim(), 0);
         await _indexLock.WaitAsync(cancellationToken);
         try
         {
             foreach (var index in _indexes.Values)
             {
                 index.RemoveAll(entry =>
-                    string.Equals(entry.Document.CustomerId, customerId, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(entry.Document.CustomerId, customerId.Trim(), StringComparison.OrdinalIgnoreCase));
             }
         }
         finally
@@ -72,14 +72,14 @@ public sealed class KnowledgeSearchService(
     public void RemoveCustomer(string customerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
-        _deletedCustomerIds.TryAdd(customerId, 0);
+        _deletedCustomerIds.TryAdd(customerId.Trim(), 0);
         _indexLock.Wait();
         try
         {
             foreach (var index in _indexes.Values)
             {
                 index.RemoveAll(entry =>
-                    string.Equals(entry.Document.CustomerId, customerId, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(entry.Document.CustomerId, customerId.Trim(), StringComparison.OrdinalIgnoreCase));
             }
         }
         finally
@@ -89,7 +89,7 @@ public sealed class KnowledgeSearchService(
     }
 
     private async Task<IReadOnlyList<IndexedDocument>> GetOrBuildIndexAsync(
-        string mode, CancellationToken cancellationToken)
+        string mode, DemoUser identity, CancellationToken cancellationToken)
     {
         if (!string.Equals(mode, "before", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "after", StringComparison.OrdinalIgnoreCase))
@@ -97,23 +97,30 @@ public sealed class KnowledgeSearchService(
             throw new ArgumentException("Mode must be 'before' or 'after'.", nameof(mode));
         }
 
+        // The demo has exactly two immutable permission scopes. Identity aliases
+        // share a scope, but admin's cached corpus is never reused for Jane.
+        var cacheKey = (mode.ToLowerInvariant(), identity.IsAdministrator ? "admin" : "jane");
         await _indexLock.WaitAsync(cancellationToken);
         try
         {
-            if (_indexes.TryGetValue(mode, out var cached))
+            if (_indexes.TryGetValue(cacheKey, out var cached))
             {
                 return cached.ToArray();
             }
 
             var documents = await documentSource.LoadAsync(mode, cancellationToken);
             var index = new List<IndexedDocument>(documents.Count);
-            foreach (var document in documents.Where(document => !IsDeleted(document.CustomerId)))
+            foreach (var document in documents.Where(document => !IsDeleted(document.CustomerId)
+                && identity.CanAccess(document.CustomerId, document.Region)))
             {
                 var vector = await embeddingService.EmbedAsync(document.Content, cancellationToken);
-                index.Add(new IndexedDocument(document, vector));
+                if (!IsDeleted(document.CustomerId))
+                {
+                    index.Add(new IndexedDocument(document, vector));
+                }
             }
 
-            _indexes[mode] = index;
+            _indexes[cacheKey] = index;
             return index.ToArray();
         }
         finally
@@ -122,7 +129,7 @@ public sealed class KnowledgeSearchService(
         }
     }
 
-    private bool IsDeleted(string customerId) => _deletedCustomerIds.ContainsKey(customerId);
+    private bool IsDeleted(string customerId) => _deletedCustomerIds.ContainsKey(customerId.Trim());
 
     private static double CosineSimilarity(IReadOnlyList<float> left, IReadOnlyList<float> right)
     {

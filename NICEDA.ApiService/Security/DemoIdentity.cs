@@ -43,13 +43,13 @@ public static class DemoIdentity
         if (string.Equals(userId, "admin", StringComparison.OrdinalIgnoreCase)
             || string.Equals(userId, "administrator", StringComparison.OrdinalIgnoreCase))
         {
-            return new DemoUser(userId, "Admin", true, NoCustomers, NoRegions);
+            return new DemoUser("admin", "Admin", true, NoCustomers, NoRegions);
         }
 
         if (string.Equals(userId, "jane", StringComparison.OrdinalIgnoreCase)
             || string.Equals(userId, "jane.okafor@niceda.example", StringComparison.OrdinalIgnoreCase))
         {
-            return new DemoUser(userId, "Jane", false, JaneCustomerIds, EuRegions);
+            return new DemoUser("jane", "Jane", false, JaneCustomerIds, EuRegions);
         }
 
         throw new UnauthorizedAccessException($"Unknown demo user '{userId}'.");
