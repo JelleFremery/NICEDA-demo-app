@@ -10,6 +10,8 @@ namespace NICEDA.ApiService.Legal;
 public sealed class LegalRepository
 {
     private readonly IReadOnlyList<LegalDocument> _documents;
+    private readonly HashSet<string> _deleted = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _gate = new();
 
     public LegalRepository(IWebHostEnvironment environment)
     {
@@ -21,5 +23,14 @@ public sealed class LegalRepository
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public IReadOnlyList<LegalDocument> GetAll() => _documents;
+    public IReadOnlyList<LegalDocument> GetAll()
+    {
+        lock (_gate) return _documents.Where(d =>
+            !_deleted.Contains(LegalKnowledgeProjection.Project(d).CustomerId)).ToArray();
+    }
+
+    public void RemoveCustomer(string id)
+    {
+        lock (_gate) _deleted.Add(id);
+    }
 }

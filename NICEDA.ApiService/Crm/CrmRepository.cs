@@ -10,6 +10,8 @@ namespace NICEDA.ApiService.Crm;
 public sealed class CrmRepository
 {
     private readonly IReadOnlyList<CrmCustomer> _customers;
+    private readonly HashSet<string> _deleted = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _gate = new();
 
     public CrmRepository(IWebHostEnvironment environment)
     {
@@ -21,8 +23,16 @@ public sealed class CrmRepository
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public IReadOnlyList<CrmCustomer> GetAll() => _customers;
+    public IReadOnlyList<CrmCustomer> GetAll()
+    {
+        lock (_gate) return _customers.Where(c => !_deleted.Contains(c.Id)).ToArray();
+    }
+
+    public void RemoveCustomer(string id)
+    {
+        lock (_gate) _deleted.Add(id);
+    }
 
     public CrmCustomer? GetById(string id) =>
-        _customers.FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase));
+        GetAll().FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase));
 }
