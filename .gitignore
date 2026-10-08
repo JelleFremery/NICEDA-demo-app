@@ -1,0 +1,19 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Aspire
+**/apphost-*.log
+
+## Docker
+*.pid
+
+## OS
+.DS_Store
+Thumbs.db
+
+## IDE
+.idea/
