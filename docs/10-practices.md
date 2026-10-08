@@ -45,5 +45,17 @@ find every live example.
 ## Status
 
 Finalized for implementation. As each practice lands in code, this file
-should gain a short "where to look" pointer (file/tag) alongside its
+gains a short "where to look" pointer (file/tag) alongside its
 description.
+
+- **Practice 1 (data inventory)** — ✅ `docs/data-inventory.md` plus the
+  live "Before" seed: `NICEDA.ApiService/Crm`, `Sql/RawSqlSeeder.cs`,
+  `SupportDocs/RawSupportSeeder.cs`, `Legal`. Browse all four raw shapes
+  (and the inventory itself) side by side at `/data-explorer` in
+  `NICEDA.Web` — this is the ~slide 12 demo beat.
+- **Practice 2 (identify agent use cases first)** — ✅
+  `docs/agent-use-cases.md`, written before any retrieval/tool code; the
+  3 use cases there drive the semantic layer and MCP tool design in later
+  slices.
+- Practices 3–10: not yet implemented (slices 3–6, see
+  `docs/demo-plan.md` §9).
