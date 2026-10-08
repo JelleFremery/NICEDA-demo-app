@@ -33,7 +33,10 @@ public sealed class CustomerDataLifecycle(
         await CustomerDeletionCommand.DeleteCustomerDataAsync(
             connection, cosmos, customerId, afterSqlCommitAsync, cancellationToken);
         await feedback.DeleteCustomerAsync(customerId, cancellationToken);
-        logger.LogInformation("Deleted customer {CustomerId} from source stores and derived data", customerId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Deleted customer {CustomerId} from source stores and derived data", customerId);
+        }
     }
 
     public Task ReconcilePendingDeletionsAsync(CancellationToken cancellationToken = default) =>

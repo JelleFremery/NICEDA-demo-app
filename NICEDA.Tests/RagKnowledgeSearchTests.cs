@@ -4,6 +4,8 @@ namespace NICEDA.Tests;
 
 public sealed class RagKnowledgeSearchTests
 {
+    private static readonly string[] collection = ["betabit", "fenetre", "techorama"];
+
     [Fact]
     public async Task SearchAsync_ReturnsExpectedMatchingChunkForJane()
     {
@@ -16,7 +18,7 @@ public sealed class RagKnowledgeSearchTests
         Assert.Equal("techorama-export", results[0].Id);
         Assert.All(results, result => Assert.Contains(
             result.CustomerId,
-            new[] { "betabit", "fenetre", "techorama" }));
+            collection));
     }
 
     [Fact]
@@ -211,9 +213,9 @@ public sealed class RagKnowledgeSearchTests
         {
             EmbeddedInputs.Add(text);
             var vector = text.Contains("export", StringComparison.OrdinalIgnoreCase)
-                ? new float[] { 0, 1 }
+                ? [0, 1]
                 : text.Contains("risk", StringComparison.OrdinalIgnoreCase)
-                    ? new float[] { 1, 0 }
+                    ? [1, 0]
                     : new float[] { 0.5f, 0.5f };
             return Task.FromResult(vector);
         }

@@ -35,7 +35,7 @@ public sealed class KnowledgeSearchService(
         }
 
         var queryVector = await embeddingService.EmbedAsync(question, cancellationToken);
-        return authorizedCandidates
+        return [.. authorizedCandidates
             .Where(entry => !IsDeleted(entry.Document.CustomerId))
             .Select(entry => new KnowledgeSearchResult(
                 entry.Document.Id,
@@ -45,8 +45,7 @@ public sealed class KnowledgeSearchService(
                 CosineSimilarity(queryVector, entry.Vector)))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Id, StringComparer.Ordinal)
-            .Take(5)
-            .ToArray();
+            .Take(5)];
     }
 
     public async Task InvalidateCustomerAsync(
@@ -105,7 +104,7 @@ public sealed class KnowledgeSearchService(
         {
             if (_indexes.TryGetValue(cacheKey, out var cached))
             {
-                return cached.ToArray();
+                return [.. cached];
             }
 
             var documents = await documentSource.LoadAsync(mode, cancellationToken);
@@ -121,7 +120,7 @@ public sealed class KnowledgeSearchService(
             }
 
             _indexes[cacheKey] = index;
-            return index.ToArray();
+            return [.. index];
         }
         finally
         {
@@ -131,9 +130,9 @@ public sealed class KnowledgeSearchService(
 
     private bool IsDeleted(string customerId) => _deletedCustomerIds.ContainsKey(customerId.Trim());
 
-    private static double CosineSimilarity(IReadOnlyList<float> left, IReadOnlyList<float> right)
+    private static double CosineSimilarity(float[] left, float[] right)
     {
-        if (left.Count != right.Count || left.Count == 0)
+        if (left.Length != right.Length || left.Length == 0)
         {
             throw new InvalidOperationException("Embedding vectors have incompatible dimensions.");
         }
@@ -141,7 +140,7 @@ public sealed class KnowledgeSearchService(
         double dotProduct = 0;
         double leftMagnitude = 0;
         double rightMagnitude = 0;
-        for (var i = 0; i < left.Count; i++)
+        for (var i = 0; i < left.Length; i++)
         {
             dotProduct += left[i] * right[i];
             leftMagnitude += left[i] * left[i];

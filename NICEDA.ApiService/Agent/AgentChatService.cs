@@ -187,15 +187,15 @@ public sealed class AgentChatService(
         var response = await agent.RunAsync(request.Message, cancellationToken: cancellationToken);
         var interactionId = Guid.NewGuid().ToString("N");
         var customers = touchedCustomers
-            .Select(pair => new TouchedCustomer(pair.Key, pair.Value.Keys.Order(StringComparer.Ordinal).ToArray()))
+            .Select(pair => new TouchedCustomer(pair.Key, [.. pair.Value.Keys.Order(StringComparer.Ordinal)]))
             .OrderBy(customer => customer.CustomerId, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         var result = new AgentChatResponse(
             response.Text,
-            citations.DistinctBy(citation => citation.DocumentId).ToArray(),
-            traces.ToArray(),
+            [.. citations.DistinctBy(citation => citation.DocumentId)],
+            [.. traces],
             interactionId,
-            actionOutcomes.ToArray());
+            [.. actionOutcomes]);
         _interactions[interactionId] = new ChatInteraction(identity.UserId, mode.ToString(), ChatUseCase, customers);
         return await outcomeRecorder.RecordAsync(
             result,
