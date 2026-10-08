@@ -1,0 +1,105 @@
+@page "/data-explorer"
+@attribute [StreamRendering(true)]
+@inject DataExplorerApiClient Api
+
+<PageTitle>Data Explorer</PageTitle>
+
+<h1>Data Explorer — "Before" state</h1>
+
+<p>
+    NICEDA Inc.'s data inventory (<code>// NICEDA-PRACTICE-1</code>) and the
+    raw shape of each system. Nothing here has been reshaped yet — that's
+    the point of the "Before" demo beat.
+</p>
+
+<div class="btn-group mb-3" role="group">
+    @foreach (var system in Systems)
+    {
+        <button type="button"
+                class="btn @(system == _selected ? "btn-primary" : "btn-outline-primary")"
+                @onclick="() => SelectAsync(system)">
+            @system
+        </button>
+    }
+</div>
+
+@if (_loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (_rows is null || _rows.Count == 0)
+{
+    <p><em>No data.</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                @foreach (var column in _columns)
+                {
+                    <th>@column</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in _rows)
+            {
+                <tr>
+                    @foreach (var column in _columns)
+                    {
+                        <td>@RenderCell(row, column)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private static readonly string[] Systems =
+    [
+        "Data Inventory",
+        "CRM (mocked)",
+        "SQL — raw (real)",
+        "Cosmos — raw-support (real)",
+        "SharePoint (mocked)",
+    ];
+
+    private string _selected = Systems[0];
+    private bool _loading = true;
+    private List<System.Text.Json.Nodes.JsonObject>? _rows;
+    private List<string> _columns = [];
+
+    protected override async Task OnInitializedAsync() => await SelectAsync(Systems[0]);
+
+    private async Task SelectAsync(string system)
+    {
+        _selected = system;
+        _loading = true;
+        _rows = system switch
+        {
+            "Data Inventory" => await Api.GetDataInventoryAsync(),
+            "CRM (mocked)" => await Api.GetCrmCustomersAsync(),
+            "SQL — raw (real)" => await Api.GetSqlRawCustomersAsync(),
+            "Cosmos — raw-support (real)" => await Api.GetCosmosRawSupportAsync(),
+            "SharePoint (mocked)" => await Api.GetLegalDocumentsAsync(),
+            _ => null,
+        };
+
+        // Each system's rows may have different shapes (especially the raw
+        // Cosmos documents, on purpose) — build the column list from the
+        // union of whatever keys are actually present.
+        _columns = _rows?
+            .SelectMany(r => r.Select(kv => kv.Key))
+            .Distinct()
+            .ToList() ?? [];
+
+        _loading = false;
+    }
+
+    private static string RenderCell(System.Text.Json.Nodes.JsonObject row, string column) =>
+        row.TryGetPropertyValue(column, out var value) && value is not null
+            ? value.ToJsonString()
+            : "";
+}

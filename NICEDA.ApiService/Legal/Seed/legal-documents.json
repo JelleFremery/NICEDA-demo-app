@@ -1,0 +1,13 @@
+[
+  { "id": "doc-001", "folderPath": "/Customers/Betabit/Contracts", "fileName": "MSA_Betabit_2019.pdf", "sizeKb": 482, "modifiedDateText": "3/2019" },
+  { "id": "doc-002", "folderPath": "/Customers/Betabit/Contracts/Amendments", "fileName": "Amendment_2022_DataProcessing.pdf", "sizeKb": 118, "modifiedDateText": "11/2022" },
+  { "id": "doc-003", "folderPath": "/Customers/Betabit/Compliance", "fileName": "Security_Questionnaire_Response.pdf", "sizeKb": 760, "modifiedDateText": "6/2024" },
+  { "id": "doc-004", "folderPath": "/Customers/Fenetre/Contracts", "fileName": "MSA_Fenetre_2021.pdf", "sizeKb": 395, "modifiedDateText": "9/2021" },
+  { "id": "doc-005", "folderPath": "/Customers/Fenetre/Contracts/Renewals", "fileName": "Renewal_2025.pdf", "sizeKb": 150, "modifiedDateText": "8/2025" },
+  { "id": "doc-006", "folderPath": "/Customers/Techorama/Contracts", "fileName": "MSA_Techorama_2023.pdf", "sizeKb": 410, "modifiedDateText": "1/2023" },
+  { "id": "doc-007", "folderPath": "/Customers/Techorama/Compliance", "fileName": "DPA_Techorama.pdf", "sizeKb": 220, "modifiedDateText": "1/2023" },
+  { "id": "doc-008", "folderPath": "/Customers/Contoso/Contracts", "fileName": "EnterpriseAgreement_Contoso.pdf", "sizeKb": 980, "modifiedDateText": "2017" },
+  { "id": "doc-009", "folderPath": "/Customers/Fabrikam/Contracts", "fileName": "MSA_Fabrikam_2020.pdf", "sizeKb": 300, "modifiedDateText": "11/2020" },
+  { "id": "doc-010", "folderPath": "/Policies/Internal", "fileName": "Data_Retention_Policy_v4.pdf", "sizeKb": 85, "modifiedDateText": "2/2025" },
+  { "id": "doc-011", "folderPath": "/Policies/Internal", "fileName": "Vendor_Risk_Process.pdf", "sizeKb": 64, "modifiedDateText": "5/2024" }
+]
