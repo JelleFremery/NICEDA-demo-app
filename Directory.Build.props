@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    NICEDA engineering rule: warnings are errors. A clean build with zero
+    warnings is required before any slice of work is considered done.
+    See AGENTS.md / docs/demo-plan.md §8 ("Engineering workflow").
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

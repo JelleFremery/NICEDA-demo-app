@@ -20,14 +20,22 @@ demonstrates:
 
 - This is demo/talk code: favor clarity and a clean before/after narrative
   over production hardening. Prefer the simplest implementation that makes
-  the point of the current practice/step.
+  the point of the current practice/step — fewer projects/containers beats
+  "more realistic" every time a choice comes up.
 - Keep the solution runnable via **.NET Aspire** (`dotnet run` on the
   AppHost) and via **Docker**. Don't introduce dependencies that can't run
   in a container.
+- **Warnings are errors** (`Directory.Build.props`). A build with warnings
+  is a failed build.
+- **Iterate with tests.** Every slice of work adds its test(s) in
+  `NICEDA.Tests` alongside the code, then `dotnet build` + `dotnet test`
+  before moving on. Don't defer testing to a final pass.
 - When adding or changing a "practice" demo step, update
-  `docs/10-practices.md` so slides and code stay in sync.
+  `docs/10-practices.md` and bookmark the spot in code with a
+  `// NICEDA-PRACTICE-N: ...` comment so it's greppable during the talk.
 - Prefer small, incremental commits per practice/step so the repo history
-  itself can be shown during the talk.
+  itself can be shown during the talk. See `docs/demo-plan.md` for the
+  exact build sequence.
 - Don't add production-grade auth/security scaffolding unless it's the
   point being demonstrated — but do call out in comments/docs where a real
   deployment would need more (this talk is partly about security
@@ -36,8 +44,8 @@ demonstrates:
   document/knowledge data. Keep the split intentional and explain in
   comments why a given demo artifact lives in one vs. the other.
 - Agent/tool code uses the Microsoft Agent Framework. Keep RAG and MCP
-  implementations clearly separated (e.g. distinct projects/folders) so
-  the talk can show them independently and then combined.
+  implementations clearly separated — `NICEDA.McpServer` is the one
+  deliberate extra project for this; don't add more just for symmetry.
 
 ## Repo-specific tooling
 
@@ -49,4 +57,5 @@ demonstrates:
 - `.github/skills/agent-readiness-review/` — a skill for reviewing a data
   source against `docs/10-practices.md`.
 
-See `AGENTS.md` for the authoritative, tool-agnostic agent contract.
+See `docs/demo-plan.md` for the current architecture and build sequence,
+and `AGENTS.md` for the authoritative, tool-agnostic agent contract.

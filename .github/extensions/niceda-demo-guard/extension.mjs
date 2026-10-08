@@ -13,7 +13,20 @@
 
 import { joinSession } from "@github/copilot-sdk/extension";
 
-const DESTRUCTIVE_SQL_PATTERN = /\b(drop|truncate|delete\s+from|alter\s+table|update\s+\w+\s+set)\b/i;
+// Requires a real SQL statement shape (keyword + target), not just a bare
+// word, so prose mentioning "drop"/"update" (e.g. commit messages, docs)
+// doesn't trip the guard. See AGENTS.md for why this guard exists.
+const DESTRUCTIVE_SQL_PATTERN =
+    /\b(drop\s+(table|database|schema|index|view)|truncate\s+table|delete\s+from|alter\s+table|update\s+\S+\s+set)\b/i;
+
+// Tool names whose arguments may contain a command/query string worth
+// scanning. Anything else (file edits, git operations, etc.) is skipped so
+// the guard doesn't block unrelated work.
+const SHELL_TOOL_NAMES = new Set(["powershell", "bash", "shell"]);
+
+function isGitInvocation(command) {
+    return /^\s*git(\.exe)?\s/i.test(command ?? "");
+}
 
 const session = await joinSession({
     tools: [
@@ -56,8 +69,17 @@ const session = await joinSession({
     ],
     hooks: {
         onPreToolUse: async (input) => {
-            const argsText = JSON.stringify(input.toolArgs ?? "");
-            if (DESTRUCTIVE_SQL_PATTERN.test(argsText)) {
+            if (!SHELL_TOOL_NAMES.has(input.toolName)) {
+                // Only shell-executing tools can actually run SQL against a
+                // database; skip file edits, git operations via other
+                // tools, etc.
+                return undefined;
+            }
+            const command = /** @type {{ command?: string }} */ (input.toolArgs ?? {}).command ?? "";
+            if (isGitInvocation(command)) {
+                return undefined;
+            }
+            if (DESTRUCTIVE_SQL_PATTERN.test(command)) {
                 return {
                     permissionDecision: "ask",
                     permissionDecisionReason:

@@ -22,16 +22,24 @@ mind: prefer additive, easily-reversible changes over deep restructuring.
 
 ## Solution layout
 
+See `docs/demo-plan.md` for the authoritative, up-to-date project layout,
+practice-to-code mapping, and build sequence. Summary (keep this table in
+sync when projects are added/removed):
+
 | Project | Purpose |
 |---|---|
-| `NICEDA.AppHost` | Aspire orchestrator — wires up all resources/services for local + Docker runs. |
+| `NICEDA.AppHost` | Aspire orchestrator — SQL Server + Cosmos DB emulator containers, wires connection strings/params, runs everything in Docker. |
 | `NICEDA.ServiceDefaults` | Shared Aspire service defaults (telemetry, health checks, resilience). |
-| `NICEDA.ApiService` | Backend API over the enterprise data. |
-| `NICEDA.Web` | Front-end / demo UI. |
+| `NICEDA.ApiService` | All data access (mocked CRM/SharePoint + real SQL/Cosmos), the before/after toggle, semantic/CQRS layer, RAG pipeline, and chat endpoint (Microsoft Agent Framework). Deliberately one process, not split across an extra agent project. |
+| `NICEDA.Web` | Blazor UI only: data explorer (4 systems + Before/After toggle), agentic chat, current-user selector. No business logic here. |
+| `NICEDA.McpServer` | The one deliberately-separate project: a real MCP server exposing governed write action(s), kept isolated from in-process tools. |
+| `NICEDA.Tests` | xUnit tests, including the practice-9 deterministic test set. Grows alongside every slice — not a final step. |
 
-Additional projects for RAG, MCP, and the Microsoft Agent Framework
-orchestration will be added as the demo narrative is built out — keep this
-table updated when they land.
+Favor fewer projects/containers over "more realistic" architecture: this
+is a 5-minutes-per-beat live demo, not a production system. Only split
+something into its own project when the split itself is the point being
+demonstrated (MCP vs. RAG separation is; an extra agent-host process
+is not).
 
 ## Build & run
 
@@ -52,7 +60,8 @@ Dockerfiles, unless a project specifically needs one.
   change how data is modeled or exposed, say which of the 10 practices it
   demonstrates (or update `docs/10-practices.md`).
 - Keep RAG and MCP implementations separable so each can be demoed on its
-  own and then combined.
+  own and then combined — but don't manufacture extra separate projects
+  beyond that one split; see "Solution layout" above.
 - Never wire up an autonomous agent action that performs an unguarded
   destructive operation (raw `DROP`/`DELETE`/`UPDATE` without validation)
   — that class of mistake is explicitly one of the talking points of the
@@ -61,11 +70,21 @@ Dockerfiles, unless a project specifically needs one.
 - Don't invent production security/compliance scaffolding unless asked;
   this is a conference demo. Do leave a short comment where a real system
   would need more.
-- Validate changes with `dotnet build` (and tests, once added) before
-  considering a step done.
+- **Warnings are errors.** `Directory.Build.props` sets
+  `TreatWarningsAsErrors`. A build with warnings is a failed build — fix
+  the warning, don't suppress it, before continuing.
+- **Work iteratively, test as you go.** Each unit of work lands with its
+  own test(s) in `NICEDA.Tests` in the same step — not a test pass saved
+  for the end. After every slice: `dotnet build` (clean, no warnings) then
+  `dotnet test` (green) before moving on or committing.
+- **Bookmark practices in code.** Where a practice from
+  `docs/10-practices.md` is demonstrated, add a short
+  `// NICEDA-PRACTICE-N: ...` comment at the relevant spot so it's
+  greppable/presentable live (`grep -rn "NICEDA-PRACTICE-" `).
+- Keep commits small and scoped to one slice of `docs/demo-plan.md`'s build
+  sequence, so the repo history itself narrates before → after → agentic.
 
 ## Status
 
-Scaffolding only. A PowerPoint with the full talk content is expected next
-and will drive the concrete data model, the 10 practices examples, and the
-RAG/MCP/tool implementations.
+Architecture plan finalized in `docs/demo-plan.md`. Implementation is
+proceeding slice by slice per that plan's build sequence.
