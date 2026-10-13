@@ -39,6 +39,11 @@ public sealed class DataExplorerTests
         {
             var component = await renderer.RenderComponentAsync<DataExplorer>(ParameterView.Empty);
             Assert.Contains("Jane record", component.ToHtmlString());
+            if (mode == "before")
+            {
+                Assert.Contains("class=\"truncated-cell-text\"", component.ToHtmlString());
+                Assert.Contains("title=\"The full sales note stays available on hover.\"", component.ToHtmlString());
+            }
             Assert.Single(handler.Requests);
 
             demo.SetUser("admin");
@@ -160,7 +165,14 @@ public sealed class DataExplorerTests
             Requests.Add((request.RequestUri!.AbsolutePath, user));
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = JsonContent.Create(new[] { new { name = user == "jane" ? "Jane record" : "Admin record" } }),
+                Content = JsonContent.Create(new[]
+                {
+                    new
+                    {
+                        name = user == "jane" ? "Jane record" : "Admin record",
+                        salesNotes = "The full sales note stays available on hover.",
+                    },
+                }),
             });
         }
     }
