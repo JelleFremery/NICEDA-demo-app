@@ -70,6 +70,7 @@ else if (_error is null)
     private readonly CancellationTokenSource _lifetime = new();
     private string _selected = Systems[0];
     private string _loadedMode = "";
+    private string _loadedUserId = "";
     private bool _loading;
     private bool _disposed;
     private string? _error;
@@ -87,7 +88,7 @@ else if (_error is null)
         _ = InvokeAsync(async () =>
         {
             if (_disposed) return;
-            if (!_loading && _loadedMode != Demo.Mode)
+            if (!_loading && (_loadedMode != Demo.Mode || _loadedUserId != Demo.UserId))
             {
                 var load = SelectAsync(_selected);
                 StateHasChanged();
@@ -101,13 +102,14 @@ else if (_error is null)
     {
         _selected = system;
         _loadedMode = Demo.Mode;
+        _loadedUserId = Demo.UserId;
         _loading = true;
         _error = null;
         _rows = [];
         using var operation = Demo.BeginOperation();
         try
         {
-            _rows = await Api.GetSystemAsync(system, _loadedMode, _lifetime.Token);
+            _rows = await Api.GetSystemAsync(system, _loadedMode, _loadedUserId, _lifetime.Token);
             _columns = _rows.SelectMany(row => row.Select(field => field.Key)).Distinct().ToList();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }

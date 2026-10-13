@@ -29,9 +29,14 @@ checks and explicitly skip seven live checks. Test sessions retain the
 four-minute deadline. Live validation also caught and fixed a Cosmos
 feedback ID projection serialization mismatch that prevented cleanup.
 
-The remaining external verification is successful Foundry generation
-with a rotated credential and deployed models; no runtime fake response
-or embedding fallback has been introduced.
+External Foundry verification was completed on 13 October 2026 using
+the configured default deployments: real Before/After summaries, Jane's
+scope boundary, After customer health, a persisted HTTP MCP action, and
+browser feedback verified in Cosmos. Live validation required switching
+the Agent Framework client to Responses; the default reasoning model
+rejects function tools through Chat Completions. The SDK's experimental
+Responses adapter is explicitly opted into at its factory/test only.
+No runtime fake response or embedding fallback has been introduced.
 
 ## Findings
 
@@ -160,8 +165,9 @@ must remain outside embedding text.
 
 ## Deliberate limitations, not bugs to "harden away"
 
-- The dropdown is demo identity, not real sign-in; the presenter explorer
-  exposes the inventory. Do not deploy publicly as-is.
+- The dropdown is demo identity, not real sign-in; explorer records now
+  respect that scope in both modes. Inventory/glossary are presenter-wide.
+  Do not deploy publicly as-is.
 - CRM/SharePoint are mocked; SQL/Cosmos are actual Docker-backed stores.
 - Vector indexes and interaction lookup are in memory. Existing written
   feedback is durable, but feedback for a pre-restart interaction is

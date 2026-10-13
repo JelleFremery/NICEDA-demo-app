@@ -16,6 +16,39 @@ namespace NICEDA.Tests;
 public class OptimizedLayerTests(AppHostFixture fixture)
 {
     [DockerFact]
+    public async Task ExplorerSqlAndCosmosRespectSelectedIdentityInBothModes()
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        foreach (var (path, janeCount, adminCount) in new[]
+        {
+            ("sql/raw/customers", 3, 5),
+            ("sql/optimized/customer-health", 3, 5),
+            ("cosmos/raw-support", 4, 8),
+            ("cosmos/optimized-support", 4, 10),
+        })
+        {
+            foreach (var user in new[] { "jane", "admin" })
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/data-explorer/{path}");
+                request.Headers.Add(AgentMcpContract.UserHeader, user);
+                using var response = await fixture.ApiClient.SendAsync(request, deadline.Token);
+                response.EnsureSuccessStatusCode();
+                var rows = await response.Content.ReadFromJsonAsync<List<System.Text.Json.Nodes.JsonObject>>(deadline.Token);
+                Assert.NotNull(rows);
+                Assert.Equal(user == "jane" ? janeCount : adminCount, rows.Count);
+                if (user == "jane")
+                {
+                    var isRawSql = path == "sql/raw/customers";
+                    Assert.All(rows, row => Assert.True(
+                        NICEDA.ApiService.Security.DemoIdentity.Resolve(user).CanAccess(
+                            row[isRawSql ? "CustomerId" : "customerId"]!.GetValue<string>(),
+                            row[isRawSql ? "Region" : "region"]?.GetValue<string>())));
+                }
+            }
+        }
+    }
+
+    [DockerFact]
     public async Task CustomerHealthView_ReturnsExpectedBusinessFields()
     {
         var customers = await fixture.ApiClient.GetFromJsonAsync<List<CustomerHealth>>(

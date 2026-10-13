@@ -82,6 +82,10 @@ a configured Foundry credential; deterministic checks do not.
   scopes have separate caches; admin's vectors are never reused for Jane.
   The Before demo exposes poor structure, not an intentional
   authorization bypass. Security metadata is excluded from embeddings.
+  `Endpoints/DataExplorerEndpoints.cs` also applies these scopes to all
+  four explorer systems in Before and After. The Web client sends the
+  selected identity and reloads when it changes; missing or unknown API
+  identities are rejected, never treated as admin.
 - **RAG** — `Rag/FoundryEmbeddingService.cs` builds real embeddings from
   Foundry. Offline deterministic tests inject an explicitly fake embedding
   service; the running application never silently switches to it.

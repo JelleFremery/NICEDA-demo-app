@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NICEDA.ApiService\NICEDA.ApiService.csproj" />
+    <ProjectReference Include="..\NICEDA.Web\NICEDA.Web.csproj" />
   </ItemGroup>
 
 </Project>

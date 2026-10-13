@@ -115,7 +115,13 @@ dotnet user-secrets set "Foundry:Endpoint" "https://bblc-we-ai-foundry.services.
 Aspire passes these settings to the API. Defaults are chat model
 `gpt-6.1-sol` and embedding model `text-embedding-3-small`; override using
 `Foundry:ChatModel` and `Foundry:EmbeddingModel`. The endpoint is normalized
-to its OpenAI-compatible `/openai/v1` base. Rotate the key pasted into chat
+to its OpenAI-compatible `/openai/v1` base. Agent Framework uses the
+Responses API: the default reasoning deployment does not support
+function tools through Chat Completions.
+The installed SDK still labels Responses experimental; the demo explicitly
+opts in only at the adapter factory and its regression test (`OPENAI001`),
+not solution-wide.
+Rotate the key pasted into chat
 before using it for the talk.
 
 ### Docker deployment
@@ -151,8 +157,12 @@ the API. Feedback already submitted is durable in Cosmos, but a feedback
 submission for an interaction from before a restart is explicitly rejected
 as unknown.
 
-The user dropdown is **demo identity, not authentication**. The data
-explorer intentionally exposes the inventory to the presenter. Real
+The user dropdown is **demo identity, not authentication**. Changing it
+reloads the selected explorer system in both Before and After: Jane sees
+only her EU customers; admin sees all records, including internal Legal
+documents. Record endpoints require the `X-Niceda-User` header (`jane` or
+`admin`); missing or unknown identities return 403. The inventory and
+glossary remain presenter-wide. Real
 deployment needs authenticated identities and protected internal API/MCP
 endpoints; do not expose this app publicly as-is.
 

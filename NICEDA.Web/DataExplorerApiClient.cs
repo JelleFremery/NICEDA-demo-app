@@ -8,7 +8,7 @@ namespace NICEDA.Web;
 /// </summary>
 public class DataExplorerApiClient(HttpClient httpClient)
 {
-    public async Task<List<JsonObject>> GetSystemAsync(string system, string mode,
+    public async Task<List<JsonObject>> GetSystemAsync(string system, string mode, string userId,
         CancellationToken cancellationToken = default)
     {
         var path = (system, mode) switch
@@ -23,7 +23,9 @@ public class DataExplorerApiClient(HttpClient httpClient)
             ("SharePoint", _) => "legal/documents",
             _ => throw new ArgumentException("Unknown system.", nameof(system))
         };
-        using var response = await httpClient.GetAsync($"/api/data-explorer/{path}", cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/data-explorer/{path}");
+        request.Headers.Add("X-Niceda-User", userId);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var detail = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -37,15 +39,4 @@ public class DataExplorerApiClient(HttpClient httpClient)
     public Task<List<JsonObject>?> GetDataInventoryAsync(CancellationToken cancellationToken = default) =>
         httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/inventory", cancellationToken);
 
-    public Task<List<JsonObject>?> GetCrmCustomersAsync(CancellationToken cancellationToken = default) =>
-        httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/crm/customers", cancellationToken);
-
-    public Task<List<JsonObject>?> GetLegalDocumentsAsync(CancellationToken cancellationToken = default) =>
-        httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/legal/documents", cancellationToken);
-
-    public Task<List<JsonObject>?> GetSqlRawCustomersAsync(CancellationToken cancellationToken = default) =>
-        httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/sql/raw/customers", cancellationToken);
-
-    public Task<List<JsonObject>?> GetCosmosRawSupportAsync(CancellationToken cancellationToken = default) =>
-        httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/cosmos/raw-support", cancellationToken);
 }

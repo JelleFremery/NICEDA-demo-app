@@ -67,8 +67,8 @@
     private static readonly string[] Questions =
     [
         "Which customers are at risk of renewal, and why?",
-        "Summarize Techorama's onboarding blockers with sources.",
-        "Create a follow-up task for Techorama's onboarding blockers."
+        "Summarize Techorama's data export incident with sources.",
+        $"Create one follow-up task for Techorama. Reason: Review data export reliability before the next event. Due date: {DateTime.UtcNow.AddDays(14):yyyy-MM-dd}."
     ];
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly CancellationTokenSource _lifetime = new();

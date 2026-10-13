@@ -8,7 +8,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
 using OpenAI;
-using OpenAI.Chat;
 
 namespace NICEDA.ApiService.Agent;
 
@@ -180,7 +179,7 @@ public sealed class AgentChatService(
         var healthToolInstruction = mode == AgentMode.Before
             ? "The get_customer_health capability is unavailable in Before mode; do not imply that an optimized health projection was queried."
             : "Use get_customer_health for the governed optimized health projection when appropriate.";
-        var agent = client.GetChatClient(foundry.ChatModel).AsIChatClient().AsAIAgent(
+        var agent = CreateChatClient(client, foundry.ChatModel).AsAIAgent(
             instructions: $"You are NICEDA's customer-success assistant. Current account: {identity.DisplayName}. Dataset mode: {mode}. Use the provided tools to ground answers or create follow-up tasks. {healthToolInstruction} Never claim an action succeeded unless the tool confirms it. Cite supporting knowledge document IDs in your answer.",
             tools: tools);
 
@@ -206,6 +205,12 @@ public sealed class AgentChatService(
             request.Message,
             cancellationToken);
     }
+
+    // The default reasoning deployment requires Responses for function tools.
+#pragma warning disable OPENAI001 // Explicit demo opt-in to the SDK's experimental Responses adapter.
+    internal static IChatClient CreateChatClient(OpenAIClient client, string model) =>
+        client.GetResponsesClient().AsIChatClient(model);
+#pragma warning restore OPENAI001
 
     public static AgentActionOutcome ReadActionOutcome(object? result, string customerId)
     {

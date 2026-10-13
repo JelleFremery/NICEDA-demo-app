@@ -4,6 +4,9 @@ namespace NICEDA.Tests;
 // cold-start an emulator or wait on distributed-application teardown.
 public sealed class AppHostFixture : IDisposable
 {
+    public AppHostFixture() =>
+        ApiClient.DefaultRequestHeaders.Add("X-Niceda-User", "admin");
+
     public HttpClient ApiClient { get; } = new()
     {
         BaseAddress = new Uri(Environment.GetEnvironmentVariable("NICEDA_TEST_API_URL") ?? "http://localhost:5000"),

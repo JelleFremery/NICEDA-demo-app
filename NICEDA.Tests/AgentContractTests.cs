@@ -4,11 +4,25 @@ using NICEDA.ApiService.Feedback;
 using NICEDA.ApiService.Rag;
 using NICEDA.ApiService.Security;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.AI;
 
 namespace NICEDA.Tests;
 
 public sealed class AgentContractTests
 {
+    [Fact]
+    public void ChatClient_UsesResponsesForReasoningWithFunctionTools()
+    {
+        var client = new OpenAI.OpenAIClient(
+            new System.ClientModel.ApiKeyCredential("test-key"),
+            new OpenAI.OpenAIClientOptions { Endpoint = new Uri("https://foundry.example/openai/v1/") });
+        using var chat = AgentChatService.CreateChatClient(client, "gpt-6.1-sol");
+
+#pragma warning disable OPENAI001 // Verify the explicitly opted-in Responses adapter.
+        Assert.NotNull(chat.GetService<OpenAI.Responses.ResponsesClient>());
+#pragma warning restore OPENAI001
+    }
+
     [Theory]
     [InlineData("Before", AgentMode.Before)]
     [InlineData("after", AgentMode.After)]
