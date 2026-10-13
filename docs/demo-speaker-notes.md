@@ -55,7 +55,7 @@ have to understand. This is ordinary enterprise data, optimized for the
 people and systems that originally created it."
 
 | Time | Action | Speaker notes |
-|---|---|---|
+| --- | --- | --- |
 | 0:00-0:45 | Browser: Before > CRM. Point to Betabit, Fenetre, and Techorama; scroll horizontally. | "Sales can enter data quickly. For an agent, important meaning is scattered across dozens of fields and free-text notes. More columns do not equal more understanding." |
 | 0:45-1:30 | Select SQL. Show status codes and contract/line fields. | "This is a real SQL Server container. Normalization is good for storage, but a business question still needs joins, code interpretation, and a decision about which fields matter. We have not separated the read use case from operational storage." |
 | 1:30-2:15 | Select Cosmos DB; expand Raw API JSON. Contrast differently shaped records. | "This is a real Cosmos database. A ticket, meeting note, and assessment use different shapes. Missing consistent meaning and metadata makes reliable retrieval and filtering difficult." |
@@ -75,7 +75,7 @@ start chat in this first demo.
 data usable for specific agent decisions."
 
 | Time | Action | Speaker notes |
-|---|---|---|
+| --- | --- | --- |
 | 0:00-0:45 | Browser: CRM, flip Before to After. | "The same customer now has a compact business profile. This is a projection over the original entry fields, not a second CRM." |
 | 0:45-1:30 | Select SQL. Show customer health/risk and the available business fields. | "A named read model replaces repeated reasoning about normalized storage. The read side says what the business means; the write side exposes a validated command." |
 | 1:30-2:15 | Select Cosmos DB. Show concept/source ID/classification/region/retention; find the Contoso security chunks. | "Classification is stamped during ingestion. We split by meaning: access controls, residency, incident response. A relevant answer can cite a specific source chunk rather than a giant blob." |
@@ -105,7 +105,7 @@ capabilities"**, echoing the deck's RAG/MCP distinction around slide 38.
 retrieval and operational actions are different capabilities."
 
 | Time | Action | Speaker notes |
-|---|---|---|
+| --- | --- | --- |
 | 0:00-1:00 | Chat: admin, Before. Submit **"Summarize Contoso's onboarding blockers with sources."** | "The agent uses the poorly shaped knowledge. Look at which evidence it found and how useful the citations are, not just whether the prose sounds convincing." |
 | 1:00-2:00 | Flip to After and submit the identical question. | "Same question, model, and identity; better-shaped knowledge. Point out meaningful source IDs/concepts in the citations and the search trace. This is a live comparison, not a promise that every model answer must be better." |
 | 2:00-2:30 | After: select Jane; ask **"Summarize Contoso's onboarding blockers with sources."** | "Jane's scope is Betabit, Fenetre, and Techorama in the EU, not Contoso. The expected result is no authorized Contoso evidence or an explicit scope rejection. No data leak is the success condition." |

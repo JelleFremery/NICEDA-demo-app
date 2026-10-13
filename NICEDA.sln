@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.8.0.0
+# Visual Studio Version 18
+VisualStudioVersion = 18.10.12217.157 stable
 MinimumVisualStudioVersion = 17.8.0.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NICEDA.AppHost", "NICEDA.AppHost\NICEDA.AppHost.csproj", "{A1C0602E-5CDA-4A26-BDC0-51AC0AF50299}"
 EndProject
@@ -14,6 +14,43 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NICEDA.Tests", "NICEDA.Tests\NICEDA.Tests.csproj", "{29A416E4-1D02-416D-AC01-85537C15F65E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NICEDA.McpServer", "NICEDA.McpServer\NICEDA.McpServer.csproj", "{1E54C410-3B7D-401B-8FDD-D5FBB750A113}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{10DE1C31-0726-42DF-9ECF-427C520F9292}"
+	ProjectSection(SolutionItems) = preProject
+		AGENTS.md = AGENTS.md
+		Directory.Build.props = Directory.Build.props
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{4FCA7E45-D2EF-4DD1-A9C1-F9F6EA20C34D}"
+	ProjectSection(SolutionItems) = preProject
+		.github\copilot-instructions.md = .github\copilot-instructions.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "skills", "skills", "{481B8181-514E-4B47-AF7E-E4747B55F11E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "extensions", "extensions", "{6D74579C-6DD7-44E6-9F55-7D3D7304594D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "niceda-demo-guard", "niceda-demo-guard", "{565DE20A-372A-43F1-8C26-3FB1C3C37C0F}"
+	ProjectSection(SolutionItems) = preProject
+		.github\extensions\niceda-demo-guard\extension.mjs = .github\extensions\niceda-demo-guard\extension.mjs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent-readiness-review", "agent-readiness-review", "{3D3848BD-AED5-4542-969E-0395EDFB2BB3}"
+	ProjectSection(SolutionItems) = preProject
+		.github\skills\agent-readiness-review\SKILL.md = .github\skills\agent-readiness-review\SKILL.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{8A083E46-EB21-4517-B7E8-CF2AB7602D9F}"
+	ProjectSection(SolutionItems) = preProject
+		docs\10-practices.md = docs\10-practices.md
+		docs\agent-use-cases.md = docs\agent-use-cases.md
+		docs\code-review-fix-plan.md = docs\code-review-fix-plan.md
+		docs\data-inventory.md = docs\data-inventory.md
+		docs\demo-bookmarks.md = docs\demo-bookmarks.md
+		docs\demo-plan.md = docs\demo-plan.md
+		docs\demo-speaker-notes.md = docs\demo-speaker-notes.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -100,6 +137,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{481B8181-514E-4B47-AF7E-E4747B55F11E} = {4FCA7E45-D2EF-4DD1-A9C1-F9F6EA20C34D}
+		{6D74579C-6DD7-44E6-9F55-7D3D7304594D} = {4FCA7E45-D2EF-4DD1-A9C1-F9F6EA20C34D}
+		{565DE20A-372A-43F1-8C26-3FB1C3C37C0F} = {6D74579C-6DD7-44E6-9F55-7D3D7304594D}
+		{3D3848BD-AED5-4542-969E-0395EDFB2BB3} = {481B8181-514E-4B47-AF7E-E4747B55F11E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BE26E831-BD2E-4969-AD2E-09B3CC3B66EE}
