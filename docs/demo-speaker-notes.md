@@ -52,17 +52,18 @@ context, not authentication.
 ## Slide 10: "NICEDA: Before"
 
 **Opening line:** "Before we build an agent, let's look at what it would
-have to understand. This is ordinary enterprise data, optimized for the
-people and systems that originally created it."
+have to understand. Keep one question in mind for the whole talk:
+*Summarize Contoso's security review with sources.* How would an agent
+answer that from these systems?"
 
 | Time | Action | Speaker notes |
 | --- | --- | --- |
-| 0:00-0:45 | Browser: admin > Before > CRM. Point to Betabit, Fenetre, and Techorama; scroll horizontally. | "Sales can enter data quickly. For an agent, important meaning is scattered across dozens of fields and free-text notes. More columns do not equal more understanding." |
-| 0:45-1:30 | Select SQL. Show `StatusCode`, `ContractId`, dates, and `AnnualValue`. | "This is a real SQL Server container. This screen joins Customer, Contract, and Status; line items are another raw table shown in B03, not columns on this screen. Normalization is good for storage, but a business question still needs joins, code interpretation, and a decision about which fields matter." |
-| 1:30-2:15 | Select Cosmos DB; expand Raw API JSON. Contrast differently shaped records. | "This is a real Cosmos database. A ticket, meeting note, and assessment use different shapes. Missing consistent meaning and metadata makes reliable retrieval and filtering difficult." |
-| 2:15-3:00 | Select SharePoint. Point at file/folder paths. | "Legal knows where to put a file, but folder names are not a policy or a machine-readable description. CRM and SharePoint are mocked; SQL and Cosmos are not." |
-| 3:00-4:15 | Visual Studio: bookmarks B01, B02, B03. Show the inventory, use cases, and raw seed. | "First inventory the systems, owners, classifications, and agent potential. Then choose the questions and action we actually need. We are not handing the agent a database and hoping it works." |
-| 4:15-5:00 | Return to browser, Before > CRM. Switch admin to Jane, show the three EU customers, then restore admin. | "The Before state isn't deliberately insecure. Permissions remain enforced. The contrast is understanding and retrieval quality, not an unsafe authorization bypass. Next we will reshape the same data." |
+| 0:00-0:45 | Browser: admin > Before > CRM. Point to Betabit, Fenetre, and Techorama; scroll horizontally. | "Sales can enter data quickly. For an agent, important meaning is scattered across dozens of fields and free-text notes. Where in here is Contoso's security posture? More columns do not equal more understanding." |
+| 0:45-1:30 | Select SQL. Show `StatusCode`, `ContractId`, dates, and `AnnualValue`. | "This is a real SQL Server container. This screen joins Customer, Contract, and Status; line items are another raw table. Is Contoso healthy? The answer needs joins, code interpretation, and a decision about which fields matter." |
+| 1:30-2:30 | Select Cosmos DB; expand Raw API JSON. Find the Contoso assessment (support-005) and contrast it with a ticket. | "This is a real Cosmos database. Our question's answer is in here: one big assessment blob, shaped differently from a ticket or a meeting note, with no classification or region. An agent would retrieve all of it, or miss it." |
+| 2:30-3:15 | Select SharePoint. Point at file/folder paths. | "Legal knows where to put a file, but folder names are not a policy or a machine-readable description. CRM and SharePoint are mocked; SQL and Cosmos are not." |
+| 3:15-4:00 | Visual Studio: bookmark B01 (inventory). Mention B02/B03 exist. | "First inventory the systems, owners, classifications, and agent potential. Then choose the questions and action we actually need (B02). We are not handing the agent a database and hoping it works." |
+| 4:00-5:00 | Browser, Before > CRM. Switch admin to Jane, show the three EU customers, then restore admin. | "The Before state isn't deliberately insecure. Permissions remain enforced. The contrast is understanding and retrieval quality, not an unsafe authorization bypass. Next we will reshape the same data." |
 
 **Return to slides:** "Information architecture is part of agent
 architecture."
@@ -73,17 +74,20 @@ start chat in this first demo.
 ## Slide 40: "NICEDA: After"
 
 **Opening line:** "We haven't replaced the systems. We have made their
-data usable for specific agent decisions."
+data usable for specific agent decisions. Same question as before."
+
+Navigation rule for this demo: **stay on a tab and flip Before ↔ After**,
+instead of touring all four systems again. The contrast is the point.
 
 | Time | Action | Speaker notes |
 | --- | --- | --- |
-| 0:00-0:45 | Browser: admin > CRM, flip Before to After. | "The same customer now has a compact business profile. This is a projection over the original entry fields, not a second CRM." |
-| 0:45-1:30 | Select SQL. Show customer health/risk and the available business fields. | "A named read model replaces repeated reasoning about normalized storage. The read side says what the business means; the write side exposes a validated command." |
-| 1:30-2:15 | Select Cosmos DB. Show concept/source ID/classification/region/retention; find the Contoso security chunks. | "Classification is stamped during ingestion. We split by meaning: access controls, residency, incident response. A relevant answer can cite a specific source chunk rather than a giant blob." |
-| 2:15-2:45 | Select SharePoint. Show classified Legal metadata. | "The legal file now has explicit customer, topic, and classification. Its original location is still traceable." |
-| 2:45-3:45 | Visual Studio: B04 semantic view and B05 meaningful chunks/metadata. | "These are small, readable transformations. The view gives business vocabulary. The chunk envelope gives retrieval both meaning and policy context." |
-| 3:45-4:30 | Visual Studio: B06 authorization and B07 deletion. | "Resolve identity before ranking; do not embed security fields. Deletion must also remove derivative data, including vectors and feedback. We show the deletion path in code, not by destroying our live seed." |
-| 4:30-5:00 | Visual Studio: B08 deterministic retrieval test. | "We assert specific authorized facts and sources without asking an LLM to grade itself. The normal checks are offline and fast. We also have opt-in checks against real SQL, Cosmos, and MCP." |
+| 0:00-0:45 | Browser: admin > CRM. Flip Before → After → Before → After. | "The same customer now has a compact business profile. This is a projection over the original entry fields, not a second CRM." |
+| 0:45-1:30 | Select SQL; flip Before → After. Show customer health/risk for Contoso. | "Is Contoso healthy? A named read model answers that directly instead of repeated reasoning over joins and codes. The read side says what the business means; the write side exposes a validated command." |
+| 1:30-2:30 | Select Cosmos DB; flip Before → After. Show the three Contoso security chunks (`optimized-sup-005a/b/c`) side by side: concept, source ID, classification, region, retention. | "Remember the one assessment blob? It is now three chunks split by meaning: access controls, residency, incident response. Each carries policy metadata stamped at ingestion, so an answer can cite exactly one." |
+| 2:30-2:50 | Select SharePoint; flip Before → After. | "The legal file now has explicit customer, topic, and classification. Its original location is still traceable." |
+| 2:50-3:30 | Visual Studio: B04 semantic view and B05 meaningful chunks/metadata. | "These are small, readable transformations. The view gives business vocabulary. The chunk envelope gives retrieval both meaning and policy context." |
+| 3:30-4:05 | Visual Studio: B06 authorization. One sentence on B07. | "Resolve identity before ranking; do not embed security fields. And deletion" (B07, don't open) "removes derivative data too: vectors, feedback, audit rows." |
+| 4:05-5:00 | Visual Studio: B08 deterministic retrieval test. | "This is the proof. We assert a fixed expected source for Jane's question, and that Contoso's chunks are filtered out before embedding and ranking for her. No LLM grades another LLM. Offline and fast, with opt-in checks against real SQL, Cosmos, and MCP." |
 
 **Return to slides:** "The optimization is not just adding embeddings.
 It is adding meaning, policy, lifecycle, and testable capabilities."
@@ -109,11 +113,11 @@ retrieval and operational actions are different capabilities."
 | --- | --- | --- |
 | 0:00-1:00 | Chat: admin, Before. Submit **"Summarize Contoso's security review with sources."** | "The agent uses the poorly shaped knowledge. Look at which evidence it found and how useful the citations are, not just whether the prose sounds convincing. The seed contains a security assessment, not an onboarding checklist." |
 | 1:00-2:00 | Flip to After and submit the identical question. | "Same question, model, and identity; better-shaped knowledge. Point out meaningful source IDs/concepts in the citations and the search trace. This is a live comparison, not a promise that every model answer must be better." |
-| 2:00-2:30 | After: select Jane; ask **"Summarize Contoso's security review with sources."** | "Jane's scope is Betabit, Fenetre, and Techorama in the EU, not Contoso. The expected result is no authorized Contoso evidence or an explicit scope rejection. No data leak is the success condition; unrelated authorized citations are not Contoso evidence." |
-| 2:30-3:30 | Select admin again. Ask **"Create one follow-up task for Contoso. Reason: Techorama live demo - add a dedicated Contoso escalation contact. Due date: [rehearsed future ISO date]."** | "This is the real, separate HTTP MCP service calling a validated command. Show the returned task ID and tool trace. A tool success means a persisted task, not that a person received an email. The MCP tool rejects writes in Before mode." |
-| 3:30-3:50 | Enter a short comment, then click Helpful or Not helpful. | "The feedback is structured data in Cosmos, linked to the interaction and affected customer. This demo records feedback; it does not automatically retrain the model." |
+| 2:00-3:00 | Stay admin, After. Ask **"Create one follow-up task for Contoso. Reason: Techorama live demo - add a dedicated Contoso escalation contact. Due date: [rehearsed future ISO date]."** | "This is the real, separate HTTP MCP service calling a validated command. Show the returned task ID and tool trace. A tool success means a persisted task, not that a person received an email. The MCP tool rejects writes in Before mode." |
+| 3:00-3:20 | Enter a short comment, then click Helpful or Not helpful. | "The feedback is structured data in Cosmos, linked to the interaction and affected customer. This demo records feedback; it does not automatically retrain the model." |
+| 3:20-3:50 | Select Jane; ask **"Summarize Contoso's security review with sources."** Then select admin again. | "Jane's scope is Betabit, Fenetre, and Techorama in the EU, not Contoso. The expected result is no authorized Contoso evidence or an explicit scope rejection. No data leak is the success condition; unrelated authorized citations are not Contoso evidence." |
 | 3:50-4:20 | Visual Studio: B09 Agent Framework orchestration, B10 MCP tool, B11 command validation. | "Two in-process tools handle knowledge search and customer health. One MCP tool handles the operational write. Identity comes from request context, not model-controlled tool arguments." |
-| 4:20-5:00 | Browser: Data Explorer > **Audit log** (the new task row, Jane's Contoso call), then **Agent usage**; return to slides. | "Every tool call we just made is an audited row: mode, who the agent acted for, outcome. Roll it up and slide 43's question answers itself: which data is never touched? A customer or capability with zero agent use is data to improve, or to stop maintaining." |
+| 4:20-5:00 | Browser: Data Explorer > **Audit log** as admin (newest first: Jane's rows on behalf of `jane`, either a zero-hit `search_knowledge` or a denied `get_customer_health` for Contoso, then admin's `create_follow_up_task` row), then **Agent usage**; return to slides. | "Every tool call we just made is an audited row: mode, who the agent acted for, outcome. Roll it up and slide 43's question answers itself: which data is never touched? A customer or capability with zero agent use is data to improve, or to stop maintaining." |
 
 Replace `[rehearsed future ISO date]` in your notes before the talk.
 Do not use a historical hard-coded date or rely on the model to guess it.
