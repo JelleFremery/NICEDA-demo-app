@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
+using NICEDA.ApiService.Audit;
 using NICEDA.ApiService.DataLifecycle;
 using NICEDA.ApiService.Sql;
 using NICEDA.ApiService.SupportDocs;
@@ -41,6 +42,17 @@ public sealed class SeedDataHostedService(
 
         logger.LogInformation("Creating optimized SQL schema (view + command table)...");
         await optimizedSqlSeeder.EnsureCreatedAsync(connection, cancellationToken);
+
+        logger.LogInformation("Creating and seeding audit log...");
+        var liveCustomerIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using (var command = new SqlCommand(
+            "SELECT CustomerId FROM raw.Customer WHERE CustomerId NOT IN (SELECT CustomerId FROM raw.DeletedCustomer);",
+            connection))
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken)) liveCustomerIds.Add(reader.GetString(0));
+        }
+        await AgentActionAuditLog.EnsureCreatedAndSeededAsync(connection, liveCustomerIds, cancellationToken);
 
         // Durable markers survive a process restart. Finish every cross-store
         // deletion before seeding support data or declaring startup ready.

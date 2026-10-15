@@ -15,6 +15,7 @@ html, body {
 .raw-table th { white-space: nowrap; }
 .raw-table td { min-width: 150px; max-width: 360px; overflow-wrap: anywhere; }
 .raw-table td.long-text-cell { width: 360px; }
+.raw-table tr.audit-agent-row > td { --bs-table-bg-type: #efe7fb; }
 .raw-table .truncated-cell-text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -28,7 +29,11 @@ html, body {
 .record-card h3 { font-size: 1.1rem; margin-top: 1.25rem; }
 .record-card dd, .alert { overflow-wrap: anywhere; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; margin-top: .5rem; }
-.agent-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-answer { overflow-wrap: anywhere; overflow-x: auto; }
+.agent-answer table { border-collapse: collapse; margin: 1rem 0; width: 100%; }
+.agent-answer th, .agent-answer td { border: 1px solid #d6dfe8; padding: .5rem .75rem; text-align: left; }
+.agent-answer th { background: #e9eff5; }
+.agent-answer tbody tr:nth-child(even) { background: #fff; }
 
 a, .btn-link {
     color: #006bb7;

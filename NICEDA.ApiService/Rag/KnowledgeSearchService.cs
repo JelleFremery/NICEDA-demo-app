@@ -7,6 +7,10 @@ public sealed class KnowledgeSearchService(
     IKnowledgeDocumentSource documentSource,
     IEmbeddingService embeddingService)
 {
+    internal const int BeforeFragmentLength = 60;
+    internal const int BeforeResultCount = 2;
+    internal const int AfterResultCount = 5;
+
     private readonly SemaphoreSlim _indexLock = new(1, 1);
     private readonly Dictionary<(string Mode, string Scope), List<IndexedDocument>> _indexes = [];
 
@@ -45,7 +49,7 @@ public sealed class KnowledgeSearchService(
                 CosineSimilarity(queryVector, entry.Vector)))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Id, StringComparer.Ordinal)
-            .Take(5)];
+            .Take(IsBefore(mode) ? BeforeResultCount : AfterResultCount)];
     }
 
     public async Task InvalidateCustomerAsync(
@@ -109,13 +113,22 @@ public sealed class KnowledgeSearchService(
 
             var documents = await documentSource.LoadAsync(mode, cancellationToken);
             var index = new List<IndexedDocument>(documents.Count);
-            foreach (var document in documents.Where(document => !IsDeleted(document.CustomerId)
-                && identity.CanAccess(document.CustomerId, document.Region)))
+            var authorizedDocuments = documents.Where(document => !IsDeleted(document.CustomerId)
+                && identity.CanAccess(document.CustomerId, document.Region));
+            if (IsBefore(mode))
             {
-                var vector = await embeddingService.EmbedAsync(document.Content, cancellationToken);
-                if (!IsDeleted(document.CustomerId))
+                authorizedDocuments = authorizedDocuments.SelectMany(SplitIntoFixedFragments);
+            }
+
+            var toEmbed = authorizedDocuments.ToArray();
+            var vectors = toEmbed.Length == 0
+                ? []
+                : await embeddingService.EmbedManyAsync([.. toEmbed.Select(document => document.Content)], cancellationToken);
+            for (var i = 0; i < toEmbed.Length; i++)
+            {
+                if (!IsDeleted(toEmbed[i].CustomerId))
                 {
-                    index.Add(new IndexedDocument(document, vector));
+                    index.Add(new IndexedDocument(toEmbed[i], vectors[i]));
                 }
             }
 
@@ -129,6 +142,26 @@ public sealed class KnowledgeSearchService(
     }
 
     private bool IsDeleted(string customerId) => _deletedCustomerIds.ContainsKey(customerId.Trim());
+
+    private static bool IsBefore(string mode) =>
+        string.Equals(mode, "before", StringComparison.OrdinalIgnoreCase);
+
+    // NICEDA-PRACTICE-7: Before is deliberately naive RAG. Authorized raw text
+    // is cut into fixed-size fragments that ignore sentence and business-topic
+    // boundaries, concept labels are dropped, and only two fragments reach the
+    // agent. After keeps the concept chunks produced during ingestion.
+    internal static IEnumerable<KnowledgeDocument> SplitIntoFixedFragments(KnowledgeDocument document)
+    {
+        var content = document.Content;
+        for (var start = 0; start < content.Length; start += BeforeFragmentLength)
+        {
+            var fragment = content.Substring(start, Math.Min(BeforeFragmentLength, content.Length - start)).Trim();
+            if (fragment.Length > 0)
+            {
+                yield return document with { Concept = null, Content = fragment };
+            }
+        }
+    }
 
     private static double CosineSimilarity(float[] left, float[] right)
     {

@@ -174,6 +174,65 @@ public sealed class RagKnowledgeSearchTests
     }
 
     [Fact]
+    public async Task SearchAsync_BeforeReturnsFewerFixedSizeFragmentsWithoutConcepts()
+    {
+        var sentence = "Security review found an export gap; mitigation is owner-approved encryption. ";
+        var content = string.Concat(Enumerable.Repeat(sentence, 8));
+        var source = new FakeKnowledgeDocumentSource(
+        [
+            new("support-export", "techorama", "EU", "Confidential", "security-review", content),
+            new("support-other", "betabit", "EU", "Confidential", "incident-resolution", content),
+        ]);
+        var service = new KnowledgeSearchService(source, new FakeEmbeddingService());
+
+        var before = await service.SearchAsync("export", "before", "jane");
+        var after = await service.SearchAsync("export", "after", "jane");
+
+        Assert.Equal(KnowledgeSearchService.BeforeResultCount, before.Count);
+        Assert.All(before, result =>
+        {
+            Assert.Null(result.Concept);
+            Assert.True(result.Content.Length <= KnowledgeSearchService.BeforeFragmentLength);
+            Assert.NotEqual(content.Trim(), result.Content);
+        });
+        Assert.Equal(2, after.Count);
+        Assert.All(after, result =>
+        {
+            Assert.NotNull(result.Concept);
+            Assert.Equal(content, result.Content);
+        });
+    }
+
+    [Fact]
+    public async Task SearchAsync_BeforeFragmentsAreAuthorizedBeforeEmbedding()
+    {
+        var embeddings = new FakeEmbeddingService();
+        var service = CreateService(embeddings);
+
+        var results = await service.SearchAsync("account risk", "before", "jane");
+
+        Assert.DoesNotContain(results, result => result.CustomerId is "contoso" or "fabrikam");
+        Assert.DoesNotContain(embeddings.EmbeddedInputs, input =>
+            input.Contains("Contoso", StringComparison.Ordinal)
+            || input.Contains("Fabrikam", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExtractContent_ExcludesCosmosSystemProperties()
+    {
+        var document = new System.Text.Json.Nodes.JsonObject
+        {
+            ["id"] = "support-001",
+            ["note"] = "Export timed out.",
+            ["_rid"] = "AQAAAIIAAAA=",
+            ["_etag"] = "d824aa72",
+            ["_attachments"] = "attachments/",
+        };
+
+        Assert.Equal("Export timed out.", CosmosKnowledgeDocumentSource.ExtractContent(document));
+    }
+
+    [Fact]
     public async Task SearchAsync_RejectsUnknownUser()
     {
         var service = CreateService(new FakeEmbeddingService());

@@ -4,8 +4,10 @@ using NICEDA.ApiService.Rag;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
+// Add service defaults & Aspire client integrations. The shared standard
+// resilience handler has a 10-second attempt timeout, too short for Foundry
+// embedding calls during an agent run; outbound clients register their own.
+builder.AddServiceDefaults(addStandardResilienceHandler: false);
 
 // Real data stores (NICEDA-PRACTICE-1: see docs/data-inventory.md for why
 // only these two are real containers while CRM/SharePoint are mocked).

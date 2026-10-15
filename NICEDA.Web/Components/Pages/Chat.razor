@@ -35,7 +35,7 @@
     <section class="record-card mt-3" aria-label="Agent result">
         <h2>Answer</h2>
         <p class="text-secondary">@_requestMode · @_requestUser · @_askedMessage</p>
-        <div class="agent-answer">@Display(_response["answer"])</div>
+        <MarkdownAnswer Text='@Display(_response["answer"])' />
         <h3>Citations</h3>
         <JsonResult Value='_response["citations"]' />
         <h3>Tool calls</h3>
@@ -88,7 +88,19 @@
     private JsonObject? _response;
 
     protected override void OnInitialized() => Demo.Changed += OnChanged;
-    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+    private void OnChanged() => _ = InvokeAsync(() =>
+    {
+        if (_requestMode != Demo.Mode || _requestUser != Demo.UserId)
+        {
+            _response = null;
+            _interactionId = null;
+            _error = null;
+            _feedbackError = null;
+            _pendingRequestContext = null;
+            _pendingRequestKey = null;
+        }
+        StateHasChanged();
+    });
 
     private async Task SendAsync()
     {
@@ -124,6 +136,10 @@
             }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Polly.Timeout.TimeoutRejectedException)
+        {
+            _error = "The agent exceeded the five-minute request timeout. Retry the same question to reuse its pending operation key.";
+        }
         catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
         {
             _error = exception.Message;
@@ -143,7 +159,7 @@
             _feedbackSent = true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
-        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException)
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or InvalidOperationException or OperationCanceledException or Polly.Timeout.TimeoutRejectedException)
         {
             _feedbackError = exception.Message;
         }

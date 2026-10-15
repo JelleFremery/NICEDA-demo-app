@@ -11,7 +11,12 @@ public static class AgentChatEndpoints
         app.MapPost(AgentMcpContract.ChatPath, async (
             AgentChatRequest request,
             AgentChatService agent,
-            CancellationToken cancellationToken) => await HandleAsync(request, agent, cancellationToken))
+            HttpContext httpContext,
+            CancellationToken cancellationToken) =>
+        {
+            httpContext.Response.Headers.CacheControl = "no-store";
+            return await HandleAsync(request, agent, cancellationToken);
+        })
         .WithName("AgentChat");
 
         app.MapPost(AgentMcpContract.ChatFeedbackPath, async (

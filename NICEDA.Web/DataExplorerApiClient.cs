@@ -21,6 +21,7 @@ public class DataExplorerApiClient(HttpClient httpClient)
             ("Cosmos DB", _) => "cosmos/raw-support",
             ("SharePoint", "after") => "legal/optimized/documents",
             ("SharePoint", _) => "legal/documents",
+            ("Audit log", _) => "sql/audit-log",
             _ => throw new ArgumentException("Unknown system.", nameof(system))
         };
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/data-explorer/{path}");
