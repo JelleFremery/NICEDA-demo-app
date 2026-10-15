@@ -78,14 +78,19 @@ a configured Foundry credential; deterministic checks do not.
   `SemanticProjectionTests.cs`, and `FollowUpValidationTests.cs` are fast
   offline checks. `OptimizedLayerTests.cs` and `CustomerDeletionTests.cs`
   explicitly opt into live SQL/Cosmos checks; the test runner has a
-  four-minute total deadline.
+  four-minute total deadline. `RagKnowledgeSearchTests.cs` runs the
+  stage question ("Summarize Contoso's security review with sources")
+  against the real seed documents: After ranks the three Contoso concepts
+  first, Before gets concept-less fragments, and Jane never embeds Contoso
+  text.
 - **Practice 5 (authorization before retrieval)** —
   `Security/DemoIdentity.cs` and `Rag/KnowledgeSearchService.cs`.
   Trusted identity filters candidates before cosine ranking, in both
   modes, and filters source text before embedding. The two immutable demo
   scopes have separate caches; admin's vectors are never reused for Jane.
   The Before demo exposes poor structure, not an intentional
-  authorization bypass. Security metadata is excluded from embeddings.
+  authorization bypass. Security metadata is excluded from embeddings
+  (`Rag/CosmosKnowledgeDocumentSource.cs`, `ExcludedFields`).
   `Endpoints/DataExplorerEndpoints.cs` also applies these scopes to all
   four explorer systems in Before and After. The Web client sends the
   selected identity and reloads when it changes; missing or unknown API

@@ -203,6 +203,40 @@ public sealed class RagKnowledgeSearchTests
         });
     }
 
+    // NICEDA-PRACTICE-9: the stage question, against the real seed documents.
+    [Fact]
+    public async Task StageQuestion_ContosoSecurityReview_RealSeed()
+    {
+        const string question = "Summarize Contoso's security review with sources.";
+        var source = new SeedKnowledgeSource();
+
+        var adminAfter = await new KnowledgeSearchService(source, new KeywordEmbeddingService())
+            .SearchAsync(question, "after", "admin");
+        Assert.Equal(
+            ["security-finding-access-controls", "security-finding-data-residency", "security-finding-incident-response"],
+            adminAfter.Take(3).Select(result => result.Concept).Order(StringComparer.Ordinal));
+        Assert.Contains(adminAfter, result => result.Id == "optimized-sup-005c"
+            && result.Content.Contains("dedicated Contoso escalation contact", StringComparison.Ordinal));
+
+        var adminBefore = await new KnowledgeSearchService(source, new KeywordEmbeddingService())
+            .SearchAsync(question, "before", "admin");
+        Assert.Equal(KnowledgeSearchService.BeforeResultCount, adminBefore.Count);
+        Assert.All(adminBefore, result =>
+        {
+            Assert.Null(result.Concept);
+            Assert.True(result.Content.Length <= KnowledgeSearchService.BeforeFragmentLength);
+        });
+
+        foreach (var mode in new[] { "before", "after" })
+        {
+            var embeddings = new KeywordEmbeddingService();
+            var jane = await new KnowledgeSearchService(source, embeddings).SearchAsync(question, mode, "jane");
+            Assert.DoesNotContain(jane, result => result.CustomerId is "contoso" or "fabrikam");
+            Assert.DoesNotContain(embeddings.EmbeddedInputs, input =>
+                input.Contains("Contoso", StringComparison.Ordinal) && input != question);
+        }
+    }
+
     [Fact]
     public async Task SearchAsync_BeforeFragmentsAreAuthorizedBeforeEmbedding()
     {
@@ -252,6 +286,42 @@ public sealed class RagKnowledgeSearchTests
             new KnowledgeDocument("fabrikam-risk", "fabrikam", "NA", "Restricted", "renewal-risk-escalation", "Fabrikam renewal at risk."),
         ]);
         return new KnowledgeSearchService(source, embeddings);
+    }
+
+    private sealed class SeedKnowledgeSource : IKnowledgeDocumentSource
+    {
+        public Task<IReadOnlyList<KnowledgeDocument>> LoadAsync(
+            string mode, CancellationToken cancellationToken = default)
+        {
+            var (container, seed) = mode.Equals("before", StringComparison.OrdinalIgnoreCase)
+                ? ("raw-support", NICEDA.ApiService.SupportDocs.RawSupportSeeder.SeedDocuments())
+                : ("optimized-support", NICEDA.ApiService.SupportDocs.OptimizedSupportSeeder.SeedDocuments());
+            IReadOnlyList<KnowledgeDocument> documents = [.. seed
+                .Select(document => CosmosKnowledgeDocumentSource.ToKnowledgeDocument(document, container))
+                .OfType<KnowledgeDocument>()];
+            return Task.FromResult(documents);
+        }
+    }
+
+    // Deterministic bag-of-words stand-in for the embedding model.
+    private sealed class KeywordEmbeddingService : IEmbeddingService
+    {
+        private static readonly string[] Vocabulary =
+            ["contoso", "security", "review", "access", "residency", "incident", "escalation",
+             "renewal", "risk", "export", "sso", "billing", "reporting"];
+
+        public List<string> EmbeddedInputs { get; } = [];
+
+        public bool IsAvailable => true;
+
+        public Task<float[]> EmbedAsync(string text, CancellationToken cancellationToken = default)
+        {
+            EmbeddedInputs.Add(text);
+            var words = text.ToLowerInvariant()
+                .Split([' ', '.', ',', ':', ';', '\'', '-', '—', '(', ')'], StringSplitOptions.RemoveEmptyEntries)
+                .ToHashSet();
+            return Task.FromResult(Vocabulary.Select(word => words.Contains(word) ? 1f : 0f).ToArray());
+        }
     }
 
     private sealed class FakeKnowledgeDocumentSource(IReadOnlyList<KnowledgeDocument> documents)

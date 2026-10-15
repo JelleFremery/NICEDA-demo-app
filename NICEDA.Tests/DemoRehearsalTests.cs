@@ -16,7 +16,7 @@ public sealed class DemoRehearsalTests
     {
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "tools", "demo-bookmarks.json")));
-        Assert.Equal(13, manifest.RootElement.GetArrayLength());
+        Assert.Equal(21, manifest.RootElement.GetArrayLength());
         foreach (var bookmark in manifest.RootElement.EnumerateArray())
         {
             var path = Path.Combine(root, bookmark.GetProperty("file").GetString()!

@@ -76,5 +76,53 @@
     "title": "Jane's explicit EU account scope",
     "file": "NICEDA.ApiService\\Security\\DemoIdentity.cs",
     "anchor": "private static readonly IReadOnlySet<string> JaneCustomerIds ="
+  },
+  {
+    "id": "B14",
+    "title": "Before RAG: fixed 60-char fragments",
+    "file": "NICEDA.ApiService\\Rag\\KnowledgeSearchService.cs",
+    "anchor": "NICEDA-PRACTICE-7: Before is deliberately naive RAG."
+  },
+  {
+    "id": "B15",
+    "title": "CRM projection: curated business concepts",
+    "file": "NICEDA.ApiService\\Crm\\CustomerProfile.cs",
+    "anchor": "NICEDA-PRACTICE-3: curate business concepts"
+  },
+  {
+    "id": "B16",
+    "title": "SharePoint legal metadata at ingestion",
+    "file": "NICEDA.ApiService\\Legal\\LegalKnowledge.cs",
+    "anchor": "NICEDA-PRACTICE-4: a deterministic ingestion rule"
+  },
+  {
+    "id": "B17",
+    "title": "Metadata filters, never embedded",
+    "file": "NICEDA.ApiService\\Rag\\CosmosKnowledgeDocumentSource.cs",
+    "anchor": "NICEDA-PRACTICE-5: policy metadata travels"
+  },
+  {
+    "id": "B18",
+    "title": "Stage question as a deterministic test",
+    "file": "NICEDA.Tests\\RagKnowledgeSearchTests.cs",
+    "anchor": "NICEDA-PRACTICE-9: the stage question"
+  },
+  {
+    "id": "B19",
+    "title": "After-only business read tool",
+    "file": "NICEDA.ApiService\\Agent\\AgentChatService.cs",
+    "anchor": "NICEDA-PRACTICE-8: the business read tool exists only"
+  },
+  {
+    "id": "B20",
+    "title": "Every agent tool call is audited",
+    "file": "NICEDA.ApiService\\Agent\\AgentChatService.cs",
+    "anchor": "NICEDA-PRACTICE-10: every tool call the agent makes"
+  },
+  {
+    "id": "B21",
+    "title": "Agent usage: which data does the agent touch",
+    "file": "NICEDA.ApiService\\Audit\\AgentUsage.cs",
+    "anchor": "internal static IReadOnlyList<AgentUsageRow> Summarize("
   }
 ]

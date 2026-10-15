@@ -43,7 +43,15 @@ remains optional.
 | B10 | 48, Agentic | `NICEDA.McpServer\Tools\CreateFollowUpTaskTool.cs` | Separate MCP command; request-context identity, not an identity argument. |
 | B11 | 48, Agentic | `NICEDA.ApiService\Sql\FollowUpTaskCommands.cs` | Named, validated write capability, not arbitrary SQL. |
 | B12 | 48, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Feedback linked to interaction/customer. Open companion `AgentChatOutcomeRecorder.cs` to show how persistence failures warn without hiding confirmed actions. |
-| B13 | backup, permission question | `NICEDA.ApiService\Security\DemoIdentity.cs` | Jane's explicit Betabit/Fenetre/Techorama scope. |
+| B13 | backup, permission question | `NICEDA.ApiService\Security\DemoIdentity.cs` | Jane's explicit Betabit/Fenetre/Techorama scope and EU region policy (why Fabrikam stays hidden although CRM names Jane as account manager). |
+| B14 | 10, Before / 48 contrast | `NICEDA.ApiService\Rag\KnowledgeSearchService.cs` | Naive RAG: 60-char fragments, concept dropped, top 2. Explains why Before chat answers miss the Contoso findings. |
+| B15 | 40, After | `NICEDA.ApiService\Crm\CustomerProfile.cs` | Nine curated fields, `HealthSummary`, `SourceSystem`/`SourceId` provenance. |
+| B16 | 40, After | `NICEDA.ApiService\Legal\LegalKnowledge.cs` | SharePoint path becomes concept, classification, owner, retention. |
+| B17 | 40, After | `NICEDA.ApiService\Rag\CosmosKnowledgeDocumentSource.cs` | Region/classification/owner/retention filter the chunk but never enter the embedding. |
+| B18 | 40, After (alt. to B08) | `NICEDA.Tests\RagKnowledgeSearchTests.cs` | The exact stage question against the real seed: After cites 005a/b/c, Before gets concept-less fragments, Jane never embeds Contoso. |
+| B19 | 48, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | `get_customer_health` is registered only in After mode. |
+| B20 | 48, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Every tool call (including denials) writes `audit.AgentActionLog`. |
+| B21 | 48, Agentic | `NICEDA.ApiService\Audit\AgentUsage.cs` | Agent usage summary: which customers/capabilities the agent touched, and which it never did. |
 
 Run with an unlocked interactive desktop and the IDE available to receive
 rename input. The script verifies native names and that **Next Bookmark**

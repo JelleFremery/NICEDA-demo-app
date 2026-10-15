@@ -7,6 +7,8 @@ namespace NICEDA.ApiService.Rag;
 
 public sealed class CosmosKnowledgeDocumentSource(CosmosClient cosmosClient) : IKnowledgeDocumentSource
 {
+    // NICEDA-PRACTICE-5: policy metadata travels with the chunk for filtering
+    // but is never part of the embedded text.
     private static readonly HashSet<string> ExcludedFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "id",
@@ -45,32 +47,40 @@ public sealed class CosmosKnowledgeDocumentSource(CosmosClient cosmosClient) : I
             var page = await iterator.ReadNextAsync(cancellationToken);
             foreach (var item in page)
             {
-                var id = item["id"]?.GetValue<string>();
-                var customerId = item["customerId"]?.GetValue<string>();
-                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(customerId))
+                var document = ToKnowledgeDocument(item, containerId);
+                if (document is not null)
                 {
-                    throw new InvalidOperationException(
-                        $"A document in '{containerId}' is missing its id or customerId.");
-                }
-
-                var content = ExtractContent(item);
-                if (!string.IsNullOrWhiteSpace(content))
-                {
-                    documents.Add(new KnowledgeDocument(
-                        id,
-                        customerId,
-                        item["region"]?.GetValue<string>(),
-                        item["classification"]?.GetValue<string>(),
-                        item["concept"]?.GetValue<string>(),
-                        content,
-                        item["owner"]?.GetValue<string>(),
-                        item["retentionDays"]?.GetValue<int?>(),
-                        item["sourceId"]?.GetValue<string>()));
+                    documents.Add(document);
                 }
             }
         }
 
         return documents;
+    }
+
+    internal static KnowledgeDocument? ToKnowledgeDocument(JsonObject item, string containerId)
+    {
+        var id = item["id"]?.GetValue<string>();
+        var customerId = item["customerId"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(customerId))
+        {
+            throw new InvalidOperationException(
+                $"A document in '{containerId}' is missing its id or customerId.");
+        }
+
+        var content = ExtractContent(item);
+        return string.IsNullOrWhiteSpace(content)
+            ? null
+            : new KnowledgeDocument(
+                id,
+                customerId,
+                item["region"]?.GetValue<string>(),
+                item["classification"]?.GetValue<string>(),
+                item["concept"]?.GetValue<string>(),
+                content,
+                item["owner"]?.GetValue<string>(),
+                item["retentionDays"]?.GetValue<int?>(),
+                item["sourceId"]?.GetValue<string>());
     }
 
     internal static string ExtractContent(JsonObject document)

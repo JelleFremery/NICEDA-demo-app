@@ -194,6 +194,8 @@ public sealed class AgentChatService(
                 AgentMcpContract.ToolName,
                 mcpTool.Description),
         };
+        // NICEDA-PRACTICE-8: the business read tool exists only once the semantic
+        // view exists; Before has nothing safe to expose, so the agent cannot call it.
         if (mode == AgentMode.After)
         {
             tools.Add(AIFunctionFactory.Create(
