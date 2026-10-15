@@ -20,7 +20,7 @@ Do not tour every customer. Each one has a single job in the story:
 | **Contoso** (NA, admin only) | **The stage question.** "Summarize Contoso's security review with sources." The answer sits in one raw assessment blob (`support-005`), which the After state turns into three concept chunks (`optimized-sup-005a/b/c`). | Every beat. Also the permission boundary for Jane. |
 | **Fabrikam** (NA) | **Permissions come from policy, not text.** CRM lists Jane Okafor as account manager, yet Jane never sees Fabrikam: her scope is an explicit EU customer list (B13). | Before, last beat. Backup risk question. |
 | **Techorama** (Jane's, EU) | **"Never touched"** in Agent usage. Only reliable on a fresh seed: broad search results can touch it. | Agentic, last beat (with caveat). |
-| Fenetre | Healthy filler. Do not point at it. | — |
+| **Fenetre** (Jane's, EU) | **Healthy control.** Renewed, ~60k, view `RiskLevel = Low`. Shown next to Betabit, it proves the risk rule and the agent tell accounts apart instead of flagging everyone. | After SQL beat; Jane's risk question (backup). |
 
 ## Proof map: concept → evidence → bookmark
 
@@ -83,7 +83,8 @@ authentication.
   with no memory of the previous answer):
   `Create one follow-up task for Contoso. Reason: Techorama live demo - add a dedicated Contoso escalation contact. Due date: [YYYY-MM-DD].`
 - **Backup, Jane:** `Which of my customers are at risk and why?`
-  (After: Betabit High, no Fabrikam.)
+  (After: Betabit High with reasons; Fenetre Low as the healthy control —
+  "it didn't cry wolf"; no Fabrikam.)
 - **Backup, Jane:** the task prompt above. The result is an explicit MCP
   authorization failure and a failed audit row.
 - **Backup, admin:** `What are Contoso's open risks?` (slide 42's example).
@@ -121,7 +122,7 @@ Don't tour all four systems again. The contrast is the point.
 | Time | Action | Speaker notes |
 | --- | --- | --- |
 | 0:00-0:40 | Browser: admin > CRM, **Betabit**. Flip Before → After. | "Same customer: nine curated fields, a health summary built from the notes, a classification, and `SourceSystem`/`SourceId` back to the original. This is a projection over the original entry, not a second CRM." (B15 if asked) |
-| 0:40-1:20 | SQL; flip → After. Point at `RiskLevel`: Betabit **High**, Fabrikam **High**, Contoso **Low**. | "Is Betabit at risk? One row, in business words. The view owns the rule: `AtRisk` means High, renewal within 90 days means Medium. The glossary tells the agent what `RiskLevel` means and to still check CRM and support evidence. The CRM-versus-SQL date conflict becomes an owner's decision, not an agent's guess." |
+| 0:40-1:20 | SQL; flip → After. Point at `RiskLevel`: Betabit **High**, Fenetre **Low** (healthy control), Contoso **Low**. | "Is Betabit at risk? One row, in business words. And Fenetre, which renewed, stays Low, so the rule tells accounts apart. The view owns the rule: `AtRisk` means High, renewal within 90 days means Medium. The glossary tells the agent what `RiskLevel` means and to still check CRM and support evidence. The CRM-versus-SQL date conflict becomes an owner's decision, not an agent's guess." |
 | 1:20-2:20 | Cosmos DB; flip → After. Show Contoso `optimized-sup-005a/b/c`: concept, `sourceId = support-005`, classification, region, retention. Then show Betabit's single envelope. | "Remember the blob? It's now three chunks by meaning: access controls, residency, incident response. Each carries policy metadata stamped at ingestion, so an answer can cite exactly one. And Betabit's two ticket shapes now share one envelope." |
 | 2:20-2:40 | SharePoint; flip → After on the Betabit questionnaire. | "Now it has a concept, `Restricted`, an owner — Legal — and seven-year retention. The original path is still there for traceability." |
 | 2:40-3:20 | Visual Studio: **B04** semantic view, **B05** chunk envelope. | "Small, readable transformations. The view gives business vocabulary; the envelope gives retrieval meaning and policy." |
