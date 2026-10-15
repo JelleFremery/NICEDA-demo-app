@@ -121,6 +121,25 @@ function tools through Chat Completions.
 The installed SDK still labels Responses experimental; the demo explicitly
 opts in only at the adapter factory and its regression test (`OPENAI001`),
 not solution-wide.
+The web chat client allows up to five minutes for a model/tool round trip.
+Its client-specific resilience settings override Aspire's short default timeouts;
+chat and feedback POSTs are not automatically retried. Navigating away
+still cancels the request. Data-explorer clients keep the standard policy.
+The API itself does not use Aspire's shared 10-second resilience default:
+its Foundry embedding client has a 90-second attempt / 4-minute total
+budget, and index builds send embeddings in batches of up to 64 texts.
+Every chat submission starts a fresh agent run with the selected mode and
+identity, without a reused conversation or cached answer. Chat HTTP responses
+are marked `no-store`; switching mode or identity clears the displayed result.
+The RAG document/embedding index is still reused separately per mode and
+permission scope (not generated answers). Model providers may reuse prompt
+computation internally; a fresh generation can still produce similar wording.
+Before mode uses the same prompt but deliberately worse retrieval context:
+arbitrary 60-character raw fragments, no concept labels, and only two hits.
+After uses meaning-based chunks with metadata and up to five hits. Cosmos
+system properties (`_rid`, `_etag`, ...) are never indexed in either mode.
+Answers render as sanitized Markdown, including bold text, lists, code, and
+tables. Raw HTML, unsafe links, and remote images cannot execute or load.
 Rotate the key pasted into chat
 before using it for the talk.
 
@@ -151,6 +170,9 @@ Known issues and the prioritized repair sequence are in
 3. **Agentic:** open Chat, ask the same question in each mode, then request
    a follow-up. Show retrieved citations, tool traces, and Helpful/Not
    helpful feedback. Jane sees her EU accounts; admin sees all.
+4. **Audit:** open Data Explorer → **Audit log**. Each agent tool call is a
+   highlighted row (mode, on-behalf-of user, customer, outcome) next to
+   seeded human/system activity, including denied and failed actions.
 
 Chat interactions are held in memory; submit feedback before restarting
 the API. Feedback already submitted is durable in Cosmos, but a feedback

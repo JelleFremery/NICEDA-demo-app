@@ -5,35 +5,25 @@ using Microsoft.Extensions.Http.Resilience;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
+// Register resilience per client below so chat does not inherit the shared
+// default pipeline's short timeout.
+builder.AddServiceDefaults(addStandardResilienceHandler: false);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddOutputCache();
 builder.Services.AddScoped<DemoState>();
 
-// The global standard handler disables retries for unsafe methods. Give only
-// the agent chat client more time for model/tool orchestration.
-builder.Services.Configure<HttpStandardResilienceOptions>(nameof(DemoApiClient), options =>
-{
-    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(2);
-    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
-    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(3);
-});
-builder.Services.AddHttpClient<DemoApiClient>(client =>
-{
-    client.BaseAddress = new("https+http://apiservice");
-    client.Timeout = TimeSpan.FromMinutes(2);
-});
+builder.Services.AddDemoApiClient();
 
 builder.Services.AddHttpClient<DataExplorerApiClient>(client =>
     {
         // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
         // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
         client.BaseAddress = new("https+http://apiservice");
-    });
+    })
+    .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 
 var app = builder.Build();
 
@@ -47,8 +37,6 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
-
-app.UseOutputCache();
 
 app.MapStaticAssets();
 

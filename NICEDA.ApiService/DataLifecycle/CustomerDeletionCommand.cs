@@ -148,6 +148,8 @@ public static class CustomerDeletionCommand
             DELETE FROM raw.Contract WHERE CustomerId = @customerId;
             DELETE FROM raw.Customer WHERE CustomerId = @customerId;
             DELETE FROM optimized.FollowUpTask WHERE CustomerId = @customerId;
+            -- NICEDA-PRACTICE-6: the audit trail is customer data too.
+            DELETE FROM audit.AgentActionLog WHERE CustomerId = @customerId;
             """;
 
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);

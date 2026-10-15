@@ -1,0 +1,24 @@
+@using Ganss.Xss
+@using Markdig
+
+<div class="agent-answer">@_html</div>
+
+@code {
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UsePipeTables()
+        .DisableHtml()
+        .Build();
+    private MarkupString _html;
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    protected override void OnParametersSet()
+    {
+        // Model output is untrusted, including Markdown links and image URLs.
+        var sanitizer = new HtmlSanitizer();
+        sanitizer.AllowedTags.Remove("img");
+        sanitizer.AllowedAttributes.Remove("style");
+        _html = new MarkupString(sanitizer.Sanitize(Markdown.ToHtml(Text, Pipeline)));
+    }
+}

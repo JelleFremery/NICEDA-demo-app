@@ -10,4 +10,9 @@
     <ProjectReference Include="..\NICEDA.ServiceDefaults\NICEDA.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
+    <PackageReference Include="Markdig" Version="1.4.0" />
+  </ItemGroup>
+
 </Project>

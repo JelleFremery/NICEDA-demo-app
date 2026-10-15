@@ -49,6 +49,31 @@ public sealed class FoundryEmbeddingService : IEmbeddingService
     public async Task<float[]> EmbedAsync(string text, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        return (await RequestEmbeddingsAsync([text], cancellationToken))[0];
+    }
+
+    // One Foundry request per batch instead of one per chunk keeps the index
+    // build fast, especially for Before mode's many fixed-size fragments.
+    public async Task<IReadOnlyList<float[]>> EmbedManyAsync(
+        IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+        var vectors = new List<float[]>(texts.Count);
+        foreach (var batch in texts.Chunk(MaxBatchSize))
+        {
+            vectors.AddRange(await RequestEmbeddingsAsync(batch, cancellationToken));
+        }
+        return vectors;
+    }
+
+    internal const int MaxBatchSize = 64;
+
+    private async Task<float[][]> RequestEmbeddingsAsync(string[] texts, CancellationToken cancellationToken)
+    {
+        foreach (var text in texts)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        }
         if (!IsAvailable)
         {
             throw new EmbeddingServiceUnavailableException(
@@ -59,7 +84,7 @@ public sealed class FoundryEmbeddingService : IEmbeddingService
             HttpMethod.Post,
             new Uri($"{_endpoint}/embeddings", UriKind.Absolute))
         {
-            Content = JsonContent.Create(new { input = text, model = _model }),
+            Content = JsonContent.Create(new { input = texts, model = _model }),
         };
         request.Headers.Add("api-key", _apiKey);
 
@@ -70,18 +95,22 @@ public sealed class FoundryEmbeddingService : IEmbeddingService
             await response.Content.ReadAsStreamAsync(cancellationToken),
             cancellationToken: cancellationToken);
 
-        var vector = payload.RootElement
-            .GetProperty("data")[0]
-            .GetProperty("embedding")
-            .EnumerateArray()
-            .Select(value => value.GetSingle())
-            .ToArray();
+        var vectors = new float[texts.Length][];
+        foreach (var item in payload.RootElement.GetProperty("data").EnumerateArray())
+        {
+            var index = item.TryGetProperty("index", out var indexElement) ? indexElement.GetInt32() : 0;
+            if (index < 0 || index >= vectors.Length)
+            {
+                throw new InvalidOperationException("Azure AI Foundry returned an embedding for an unknown input.");
+            }
+            vectors[index] = [.. item.GetProperty("embedding").EnumerateArray().Select(value => value.GetSingle())];
+        }
 
-        if (vector.Length == 0 || vector.Any(value => !float.IsFinite(value)))
+        if (vectors.Any(vector => vector is null || vector.Length == 0 || vector.Any(value => !float.IsFinite(value))))
         {
             throw new InvalidOperationException("Azure AI Foundry returned an invalid embedding vector.");
         }
 
-        return vector;
+        return vectors;
     }
 }

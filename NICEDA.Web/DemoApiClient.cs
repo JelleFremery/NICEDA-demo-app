@@ -1,14 +1,41 @@
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace NICEDA.Web;
+
+public static class DemoApiClientRegistration
+{
+    public static IHttpClientBuilder AddDemoApiClient(this IServiceCollection services)
+    {
+        var builder = services.AddHttpClient<DemoApiClient>(client =>
+        {
+            client.BaseAddress = new("https+http://apiservice");
+        });
+        builder.AddStandardResilienceHandler(options =>
+        {
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
+            options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(5);
+            options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(10);
+            options.Retry.DisableForUnsafeHttpMethods();
+        });
+        // The standard handler disables HttpClient.Timeout; restore a bound for
+        // response-body buffering too, which happens outside its pipeline.
+        builder.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(5));
+        return builder;
+    }
+}
 
 public sealed class DemoApiClient(HttpClient httpClient)
 {
     public async Task<JsonObject> ChatAsync(string message, string mode, string userId, string requestIdempotencyKey,
         CancellationToken cancellationToken = default)
     {
-        using var response = await httpClient.PostAsJsonAsync("/api/chat",
-            new { message, mode, userId, requestIdempotencyKey }, cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/chat")
+        {
+            Content = JsonContent.Create(new { message, mode, userId, requestIdempotencyKey }),
+        };
+        request.Headers.CacheControl = new() { NoCache = true, NoStore = true };
+        using var response = await httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken)
             ?? throw new InvalidOperationException("The chat API returned an empty response.");

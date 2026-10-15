@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using NICEDA.ApiService.Audit;
 using NICEDA.ApiService.Feedback;
 using NICEDA.ApiService.Rag;
 using NICEDA.ApiService.Security;
@@ -16,7 +17,8 @@ public sealed class AgentChatService(
     IServiceScopeFactory scopeFactory,
     KnowledgeSearchService knowledgeSearch,
     FeedbackService feedbackService,
-    AgentChatOutcomeRecorder outcomeRecorder)
+    AgentChatOutcomeRecorder outcomeRecorder,
+    AgentActionAuditLog? auditLog = null)
 {
     private readonly ConcurrentDictionary<string, ChatInteraction> _interactions = new(StringComparer.Ordinal);
 
@@ -74,6 +76,16 @@ public sealed class AgentChatService(
             }
         }
 
+        var interactionId = Guid.NewGuid().ToString("N");
+
+        // NICEDA-PRACTICE-10: every tool call the agent makes becomes an audit
+        // row (who, on whose behalf, which mode, which customer, outcome).
+        Task AuditAsync(string action, string kind, string? customerId, string outcome, string? detail) =>
+            auditLog?.RecordAsync(
+                new AuditEntry("Agent", AgentActionAuditLog.AgentActor, identity.UserId, mode.ToString(),
+                    action, kind, customerId, outcome, detail, interactionId),
+                CancellationToken.None) ?? Task.CompletedTask;
+
         async Task<object> SearchKnowledgeAsync(string question, CancellationToken ct)
         {
             traces.Enqueue(new AgentToolTrace("search_knowledge", "started", null));
@@ -88,6 +100,16 @@ public sealed class AgentChatService(
                 Touch(result.CustomerId, AgentMcpContract.SearchKnowledgeToolName);
             }
             traces.Enqueue(new AgentToolTrace("search_knowledge", "completed", $"{results.Count} citations"));
+            var hitsByCustomer = results.GroupBy(result => result.CustomerId, StringComparer.OrdinalIgnoreCase).ToArray();
+            if (hitsByCustomer.Length == 0)
+            {
+                await AuditAsync(AgentMcpContract.SearchKnowledgeToolName, "Read", null, "succeeded", "0 knowledge hits");
+            }
+            foreach (var hits in hitsByCustomer)
+            {
+                await AuditAsync(AgentMcpContract.SearchKnowledgeToolName, "Read", hits.Key, "succeeded",
+                    $"{hits.Count()} knowledge hit(s): {string.Join(", ", hits.Select(hit => hit.Id).Distinct())}");
+            }
             return results;
         }
 
@@ -97,6 +119,8 @@ public sealed class AgentChatService(
             if (!string.IsNullOrWhiteSpace(customerId) && !identity.CanAccess(customerId, null))
             {
                 traces.Enqueue(new AgentToolTrace("get_customer_health", "denied", customerId));
+                await AuditAsync(AgentMcpContract.GetCustomerHealthToolName, "Read", customerId, "denied",
+                    "Identity not authorized for this customer");
                 return new { error = "The selected identity is not authorized for that customer." };
             }
 
@@ -107,6 +131,13 @@ public sealed class AgentChatService(
             foreach (var row in allowedRows)
             {
                 Touch(row.CustomerId, AgentMcpContract.GetCustomerHealthToolName);
+                await AuditAsync(AgentMcpContract.GetCustomerHealthToolName, "Read", row.CustomerId, "succeeded",
+                    "Read customer health record");
+            }
+            if (allowedRows.Length == 0)
+            {
+                await AuditAsync(AgentMcpContract.GetCustomerHealthToolName, "Read",
+                    string.IsNullOrWhiteSpace(customerId) ? null : customerId, "succeeded", "0 customer records");
             }
             traces.Enqueue(new AgentToolTrace("get_customer_health", "completed", $"{allowedRows.Length} customer records"));
             return allowedRows;
@@ -135,6 +166,8 @@ public sealed class AgentChatService(
                     outcome.FollowUpTaskId is int taskId
                         ? $"Task {taskId}: {outcome.Outcome}"
                         : $"{outcome.Outcome} for {customerId}"));
+                await AuditAsync(AgentMcpContract.ToolName, "Write", customerId, outcome.Outcome,
+                    $"Task {outcome.FollowUpTaskId} due {dueDate:yyyy-MM-dd} via MCP");
                 return result;
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -145,6 +178,7 @@ public sealed class AgentChatService(
                     null,
                     exception.Message));
                 traces.Enqueue(new AgentToolTrace(AgentMcpContract.ToolName, "failed", exception.Message));
+                await AuditAsync(AgentMcpContract.ToolName, "Write", customerId, "failed", exception.Message);
                 throw;
             }
         }
@@ -183,8 +217,10 @@ public sealed class AgentChatService(
             instructions: $"You are NICEDA's customer-success assistant. Current account: {identity.DisplayName}. Dataset mode: {mode}. Use the provided tools to ground answers or create follow-up tasks. {healthToolInstruction} Never claim an action succeeded unless the tool confirms it. Cite supporting knowledge document IDs in your answer.",
             tools: tools);
 
+        // No reused session or answer cache: every submission starts a new run
+        // with this request's identity, dataset, and tools. The action key only
+        // deduplicates writes, never model answers.
         var response = await agent.RunAsync(request.Message, cancellationToken: cancellationToken);
-        var interactionId = Guid.NewGuid().ToString("N");
         var customers = touchedCustomers
             .Select(pair => new TouchedCustomer(pair.Key, [.. pair.Value.Keys.Order(StringComparer.Ordinal)]))
             .OrderBy(customer => customer.CustomerId, StringComparer.OrdinalIgnoreCase)

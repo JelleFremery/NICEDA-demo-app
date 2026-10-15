@@ -73,7 +73,7 @@ public sealed class CosmosKnowledgeDocumentSource(CosmosClient cosmosClient) : I
         return documents;
     }
 
-    private static string ExtractContent(JsonObject document)
+    internal static string ExtractContent(JsonObject document)
     {
         var text = new StringBuilder();
         AppendContent(document, text);
@@ -83,7 +83,8 @@ public sealed class CosmosKnowledgeDocumentSource(CosmosClient cosmosClient) : I
     private static void AppendContent(JsonNode? node, StringBuilder text, string? fieldName = null)
     {
         if (fieldName is not null
-            && (ExcludedFields.Contains(fieldName)
+            && (fieldName.StartsWith('_')
+                || ExcludedFields.Contains(fieldName)
                 || fieldName.Contains("metadata", StringComparison.OrdinalIgnoreCase)
                 || fieldName.Contains("classification", StringComparison.OrdinalIgnoreCase)
                 || fieldName.Contains("permission", StringComparison.OrdinalIgnoreCase)

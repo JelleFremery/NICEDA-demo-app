@@ -6,6 +6,7 @@ using NICEDA.ApiService.DataInventory;
 using NICEDA.ApiService.Legal;
 using NICEDA.ApiService.Sql;
 using NICEDA.ApiService.Agent;
+using NICEDA.ApiService.Audit;
 using NICEDA.ApiService.Security;
 
 namespace NICEDA.ApiService.Endpoints;
@@ -113,6 +114,11 @@ public static class DataExplorerEndpoints
         records.MapGet("/sql/optimized/follow-up-tasks", async (SqlConnection connection, HttpContext context, CancellationToken cancellationToken) =>
             (await FollowUpTaskCommands.GetFollowUpTasksAsync(connection, cancellationToken: cancellationToken))
                 .Where(task => Identity(context).CanAccess(task.CustomerId, null)));
+
+        // NICEDA-PRACTICE-10: the audit trail of human, system and agent
+        // actions, newest first. Mode-independent: it records both modes.
+        records.MapGet("/sql/audit-log", async (SqlConnection connection, HttpContext context, CancellationToken cancellationToken) =>
+            await AgentActionAuditLog.GetVisibleAsync(connection, Identity(context), cancellationToken));
 
         // NICEDA-PRACTICE-4 / NICEDA-PRACTICE-7: metadata envelope +
         // concept-based chunking. Contrast with /cosmos/raw-support above.

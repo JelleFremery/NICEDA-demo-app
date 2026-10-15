@@ -63,7 +63,11 @@ a configured Foundry credential; deterministic checks do not.
 - **Practice 4 (ingestion classification)** and **Practice 7 (meaningful
   chunks)** — `SupportDocs/OptimizedSupportSeeder.cs`. The three Contoso
   security topics become individually addressable chunks with
-  classification, region, owner, retention, and source IDs.
+  classification, region, owner, retention, and source IDs. Before-mode
+  agent chat uses `Rag/KnowledgeSearchService.cs` as deliberately naive
+  RAG: authorized raw text is split into fixed 60-character fragments,
+  concept labels are dropped, and only the top two fragments are returned.
+  The prompt is unchanged; the worse answer comes from worse context.
 - **Practice 6 (deletion)** — `DataLifecycle/CustomerDeletionCommand.cs`.
   SQL children are deleted transactionally, Cosmos documents by customer
   partition; durable SQL deletion markers prevent seed resurrection.
@@ -96,6 +100,13 @@ a configured Foundry credential; deterministic checks do not.
   `DataLifecycle/CustomerDataLifecycle.cs` deletion. Startup retries
   durable deletion markers through that lifecycle; task and feedback
   writes share the same per-customer transaction lock.
+  `Audit/AgentActionAuditLog.cs` adds a SQL `audit.AgentActionLog` table
+  seeded with historical human/system rows. Every agent tool call
+  (`search_knowledge`, `get_customer_health`, `create_follow_up_task`,
+  including denials and failures) appends a row with the mode, the user
+  the agent acted for, the customer, and the outcome. The Data Explorer
+  "Audit log" tab shows it under the same identity scope, and customer
+  deletion erases a customer's audit rows (practice 6).
 - **Agent Framework and MCP** — `Agent/AgentChatService.cs` combines
   retrieval, the customer-health read model, and the separate
   `NICEDA.McpServer` follow-up tool. `GovernedTransportTests.cs` verifies
