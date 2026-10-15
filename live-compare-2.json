@@ -1,0 +1,56 @@
+﻿[
+    {
+        "mode":  "before",
+        "user":  "admin",
+        "q":  "What did the Contoso security assessment find, and what should we do about it?",
+        "citations":  1,
+        "tools":  "search_knowledge:started,search_knowledge:completed,search_knowledge:started,search_knowledge:completed",
+        "answer":  "The available assessment excerpt reports **no high-severity findings** in Contoso’s annual security review. [support-005]\n\nThe retrieved text is truncated, so I can’t verify the review’s scope, any lower-severity findings, or its specific remediation recommendations.\n\n**What we should do next:**\n- Obtain the complete assessment and confirm the scope and remaining findings.\n- Assign an owner and target date to each documented remediation item.\n- Track those items to closure and validate the fixes.\n\nThese are recommended next steps, not confirmed recommendations from the assessment. No follow-up task has been created.",
+        "excerpts":  "[support-005|] security-assessment Annual security review for Contoso. Scop"
+    },
+    {
+        "mode":  "after",
+        "user":  "admin",
+        "q":  "What did the Contoso security assessment find, and what should we do about it?",
+        "citations":  5,
+        "tools":  "search_knowledge:started,search_knowledge:completed",
+        "answer":  "Contoso’s annual security assessment found two satisfactory areas and one recommended improvement:\n\n| Area | Finding | What to do |\n|---|---|---|\n| Access controls | Quarterly access reviews are performed and satisfactory. | Continue the quarterly review process. |\n| Data residency | Data resides in the required NA region; satisfactory. | Maintain the current residency configuration. |\n| Incident response | The runbook was reviewed; the recommendation is to add a dedicated Contoso escalation contact. | Designate that contact and update the runbook with their contact details. |\n\n**Priority:** Address the incident-response recommendation. As a practical next step, confirm the contact with Contoso and verify that the escalation path works. The retrieved findings do not identify remediation needs for access controls or data residency.\n\nSources: `optimized-sup-005a`, `optimized-sup-005b`, `optimized-sup-005c`.",
+        "excerpts":  "[optimized-sup-005c|security-finding-incident-response] Contoso annual security review — incident response: runbook reviewed; recommendation to add a dedicated Contoso escalation contact.\n[optimized-sup-005a|security-finding-access-controls] Contoso annual security review — access controls: quarterly access reviews are performed and satisfactory.\n[optimized-sup-005b|security-finding-data-residency] Contoso annual security review — data residency: confirmed data resides in the NA region as required, satisfactory.\n[optimized-sup-008|billing] Contoso routine question about API rate limits; answered, no action needed.\n[optimized-sup-001|incident-resolution] Betabit SSO login failures after an IdP certificate rotation; resolved within 2 hours by re-uploading IdP metadata."
+    },
+    {
+        "mode":  "before",
+        "user":  "jane",
+        "q":  "What\u0027s the history and context for Techorama before I act?",
+        "citations":  2,
+        "tools":  "search_knowledge:started,search_knowledge:completed,search_knowledge:started,search_knowledge:completed,search_knowledge:started,search_knowledge:completed,search_knowledge:started,search_knowledge:completed",
+        "answer":  "The available support history points to an **event-critical data-export issue**, but the retrieved excerpts are incomplete.\n\n### What’s documented\n- **Context:** Techorama needed a large data export ahead of a live event. [support-004]\n- **Problem:** The export was timing out before the conference, making the event deadline an important consideration. [support-004]\n- **Reference and contact:** Ticket **TCK-5102** is associated with **jelle.vandamme@techorama.example**. [support-004]\n\n### Before you act\nI’d first check TCK-5102 for the exact deadline, whether the export was ultimately delivered, and any workaround or follow-up commitments. The available excerpts don’t establish those details—or whether the issue is still open.\n\nIf you’re contacting Techorama, focus on confirming **the next event date, the export requirements, and whether timeouts are still occurring**, rather than assuming the previous issue was resolved.\n\nNo action has been taken.",
+        "excerpts":  "[support-004|] e deadline jelle.vandamme@techorama.example TCK-5102\n[support-002|] logging for visibility since support history is often the fi"
+    },
+    {
+        "mode":  "after",
+        "user":  "jane",
+        "q":  "What\u0027s the history and context for Techorama before I act?",
+        "citations":  4,
+        "tools":  "search_knowledge:started,search_knowledge:completed,get_customer_health:started,get_customer_health:completed",
+        "answer":  "Here’s the available context for **Techorama** before you act:\n\n- **Past incident:** A data export timed out twice ahead of a conference deadline. The issue was resolved by raising the export timeout limit. This establishes deadline-sensitive export reliability as a relevant concern. [**optimized-sup-004**]\n- **Current account health:** The governed health view lists Techorama as **Active**, in **EU**, with **Low** risk and an annual value of **95,000** (currency unspecified). Its contract end date is **8 October 2027**, with **358 days to renewal** reported by the view.\n- **History gaps:** The retrieved knowledge does not provide an incident date, stakeholder names, a broader relationship timeline, or prior follow-up commitments. It also does not establish whether exports have been tested successfully since the fix.\n\n**Recommended next step:** Before a broader intervention, confirm whether another conference deadline is approaching and whether the timeout increase still meets their export needs. The recorded incident is resolved and current health is low-risk, so the available evidence supports a targeted check-in rather than an escalation.\n\nNo follow-up task has been created.",
+        "excerpts":  "[optimized-sup-004|incident-resolution] Techorama data export timed out twice ahead of a conference deadline; resolved by raising the export timeout limit.\n[optimized-sup-003|meeting-notes] Fenetre quarterly check-in: renewal went smoothly, no open issues, customer interested in the new reporting module.\n[optimized-sup-002|renewal-risk-escalation] Betabit renewal at risk: the customer\u0027s champion departed and procurement is requesting a competing quote ahead of renewal.\n[optimized-sup-001|incident-resolution] Betabit SSO login failures after an IdP certificate rotation; resolved within 2 hours by re-uploading IdP metadata."
+    },
+    {
+        "mode":  "before",
+        "user":  "admin",
+        "q":  "Which customers are at risk and why?",
+        "citations":  1,
+        "tools":  "search_knowledge:started,search_knowledge:completed,search_knowledge:started,search_knowledge:completed",
+        "answer":  "The available support records identify **Betabit** as at risk:\n\n| Customer | Risk | Why |\n|---|---|---|\n| Betabit | Renewal risk | Its champion departed, and the renewal risk is associated with account-team escalation **ESC-991**. [support-002] |\n\n**Limitation:** This is based on retrieved support evidence, not a current customer-health assessment. The results do not establish a complete list of at-risk customers or confirm whether Betabit’s risk remains unresolved.",
+        "excerpts":  "[support-002|] l at risk, champion departed Account team ESC-991"
+    },
+    {
+        "mode":  "after",
+        "user":  "admin",
+        "q":  "Which customers are at risk and why?",
+        "citations":  5,
+        "tools":  "get_customer_health:started,get_customer_health:completed,search_knowledge:started,search_knowledge:completed",
+        "answer":  "Two customers are marked **AtRisk / High risk** in the governed customer-health view:\n\n| Customer | Annual account value | Why they’re at risk |\n|---|---:|---|\n| **Betabit** | 180,000 | Their customer champion departed, and procurement is requesting a competing quote ahead of renewal—signals of lost internal advocacy and competitive pressure. [optimized-sup-002] |\n| **Fabrikam** | 45,000 | Two support tickets are open past SLA, and the account has gone quiet—indicating unresolved support issues and reduced engagement. [optimized-sup-006] |\n\n**Combined annual value at risk: 225,000** (currency not specified). Both renewals are listed as **358 days away**, so the current flags reflect account issues rather than imminent renewal deadlines.\n\nContoso, Fenetre, and Techorama are currently rated **Low risk**.",
+        "excerpts":  "[optimized-sup-006|renewal-risk-escalation] Fabrikam has two support tickets open past SLA and the account has gone quiet; looks at-risk from the support side too.\n[optimized-sup-002|renewal-risk-escalation] Betabit renewal at risk: the customer\u0027s champion departed and procurement is requesting a competing quote ahead of renewal.\n[optimized-sup-001|incident-resolution] Betabit SSO login failures after an IdP certificate rotation; resolved within 2 hours by re-uploading IdP metadata.\n[optimized-sup-005c|security-finding-incident-response] Contoso annual security review — incident response: runbook reviewed; recommendation to add a dedicated Contoso escalation contact.\n[optimized-sup-007|billing] Fabrikam billing question about invoice line items; clarified and closed the same day."
+    }
+]
