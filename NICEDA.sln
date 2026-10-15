@@ -47,9 +47,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{8A083E46-E
 		docs\agent-use-cases.md = docs\agent-use-cases.md
 		docs\code-review-fix-plan.md = docs\code-review-fix-plan.md
 		docs\data-inventory.md = docs\data-inventory.md
-		docs\demo-bookmarks.md = docs\demo-bookmarks.md
-		docs\demo-plan.md = docs\demo-plan.md
-		docs\demo-speaker-notes.md = docs\demo-speaker-notes.md
+		docs\demo-briefing.md = docs\demo-briefing.md
+		docs\demo-script.md = docs\demo-script.md
 	EndProjectSection
 EndProject
 Global

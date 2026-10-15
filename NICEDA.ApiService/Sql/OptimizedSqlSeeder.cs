@@ -6,7 +6,7 @@ namespace NICEDA.ApiService.Sql;
 /// <summary>
 /// Creates the "After" SQL shape: a thin <c>optimized</c> schema layered
 /// over the exact same <c>raw</c> rows (no duplicated data — see
-/// docs/demo-plan.md §4). This is where several practices become
+/// docs/demo-briefing.md §4). This is where several practices become
 /// concrete:
 ///
 /// NICEDA-PRACTICE-3 (add a semantic layer): <c>CustomerHealthView</c>

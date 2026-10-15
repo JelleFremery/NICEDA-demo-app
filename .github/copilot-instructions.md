@@ -34,7 +34,7 @@ demonstrates:
   `docs/10-practices.md` and bookmark the spot in code with a
   `// NICEDA-PRACTICE-N: ...` comment so it's greppable during the talk.
 - Prefer small, incremental commits per practice/step so the repo history
-  itself can be shown during the talk. See `docs/demo-plan.md` for the
+  itself can be shown during the talk. See `docs/demo-briefing.md` for the
   exact build sequence.
 - Don't add production-grade auth/security scaffolding unless it's the
   point being demonstrated — but do call out in comments/docs where a real
@@ -62,5 +62,5 @@ demonstrates:
 - `.github/skills/agent-readiness-review/` — a skill for reviewing a data
   source against `docs/10-practices.md`.
 
-See `docs/demo-plan.md` for the current architecture and build sequence,
+See `docs/demo-briefing.md` for the current architecture and build sequence,
 and `AGENTS.md` for the authoritative, tool-agnostic agent contract.

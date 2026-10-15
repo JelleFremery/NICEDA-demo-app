@@ -156,10 +156,10 @@ demo SQL database when using Compose.
 
 ### Five-minute demo beats
 
-Paste-ready slide notes are in
-[`docs/demo-speaker-notes.md`](./docs/demo-speaker-notes.md).
-The native Visual Studio bookmark setup and code tour are in
-[`docs/demo-bookmarks.md`](./docs/demo-bookmarks.md).
+The paste-ready slide script is in
+[`docs/demo-script.md`](./docs/demo-script.md). The pre-session refresher
+(customer cast, prompts, prep, Visual Studio bookmarks, architecture) is in
+[`docs/demo-briefing.md`](./docs/demo-briefing.md).
 Known issues and the prioritized repair sequence are in
 [`docs/code-review-fix-plan.md`](./docs/code-review-fix-plan.md).
 
@@ -229,7 +229,7 @@ building the demo (not part of the demo app itself):
 
 ## Status
 
-See [`docs/demo-plan.md`](./docs/demo-plan.md) for the three five-minute
+See [`docs/demo-briefing.md`](./docs/demo-briefing.md) for the three five-minute
 demo beats and [`docs/10-practices.md`](./docs/10-practices.md) for code
 bookmarks. SQL and Cosmos are real Docker-backed stores; CRM and Legal
 are deliberately mocked.

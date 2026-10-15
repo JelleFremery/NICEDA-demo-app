@@ -3,7 +3,7 @@
 Authoritative checklist for the Techorama NL 2026 session
 ["Optimizing data for agentic use"](https://www.techorama.nl/schedule/sessions/1241602).
 This is the real, final numbering (reconciled with the deck's own
-practice slides — see `docs/demo-plan.md` §5 for the full mapping and
+practice slides — see `docs/demo-briefing.md` §5 for the full mapping and
 deck source references). Each practice links to where it's demonstrated
 in code via a `// NICEDA-PRACTICE-N: ...` comment — grep for that tag to
 find every live example.
@@ -11,7 +11,7 @@ find every live example.
 1. **Build a data inventory** — know what data you have, per system:
    what it is, who owns it, how it's classified, and its agent potential.
    Demonstrated via the NICEDA data inventory (CRM/SQL/Cosmos/SharePoint)
-   in `docs/demo-plan.md` §2 and the seed/catalog code.
+   in `docs/demo-briefing.md` §2 and the seed/catalog code.
 2. **Identify agent use cases first** — decide what decisions the agent
    must support *before* touching retrieval/embeddings. Demonstrated via
    `docs/agent-use-cases.md` driving what the semantic layer and tools

@@ -22,7 +22,7 @@ mind: prefer additive, easily-reversible changes over deep restructuring.
 
 ## Solution layout
 
-See `docs/demo-plan.md` for the authoritative, up-to-date project layout,
+See `docs/demo-briefing.md` for the authoritative, up-to-date project layout,
 practice-to-code mapping, and build sequence. Summary (keep this table in
 sync when projects are added/removed):
 
@@ -88,10 +88,10 @@ Dockerfiles, unless a project specifically needs one.
   `docs/10-practices.md` is demonstrated, add a short
   `// NICEDA-PRACTICE-N: ...` comment at the relevant spot so it's
   greppable/presentable live (`grep -rn "NICEDA-PRACTICE-" `).
-- Keep commits small and scoped to one slice of `docs/demo-plan.md`'s build
+- Keep commits small and scoped to one slice of `docs/demo-briefing.md`'s build
   sequence, so the repo history itself narrates before → after → agentic.
 
 ## Status
 
-Architecture plan finalized in `docs/demo-plan.md`. Implementation is
+Architecture plan finalized in `docs/demo-briefing.md`. Implementation is
 proceeding slice by slice per that plan's build sequence.
