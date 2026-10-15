@@ -1,15 +1,13 @@
 # NICEDA: PowerPoint demo notes
 
-These are paste-ready notes for the three demo anchors in the supplied
-deck: slide 12, slide 43, and the reserved slide 49. Each demo is five
-minutes, not five minutes for every practice. The original deck has 44
-content slides; slide 49 is a hidden placeholder, so unhide/replace it
-before presenting.
+These are paste-ready notes for the three demo slides in the deck:
+slide 10 ("NICEDA: Before"), slide 40 ("NICEDA: After"), and slide 48
+("NICEDA: Agentic use"). Each demo is five minutes, not five minutes for
+every practice.
 
 Use the slide titles if the deck has been reordered. The deck's practice
-numbers differ from the agreed ten-practice implementation; use
-`docs/demo-plan.md` section 5 for the mapping. "Close the loop" is the
-additional practice you specified, not a claim about the original deck.
+numbers match `docs/10-practices.md` 1–10 (see `docs/demo-plan.md`
+section 5 for the slide mapping).
 
 ## Before the audience arrives (not part of the demo clock)
 
@@ -23,7 +21,7 @@ additional practice you specified, not a claim about the original deck.
    tabs in Before and After. Confirm Betabit, Fenetre, Techorama, Contoso,
    and Fabrikam appear with **admin** selected. Switch to **Jane** and
    confirm only Betabit, Fenetre, and Techorama remain in both modes.
-   Return to admin before the slide-12 tour; Contoso's chunks need admin.
+   Return to admin before the slide-10 tour; Contoso's chunks need admin.
 4. Open Chat as **admin**. Submit "Summarize Contoso's security review
    with sources." once in Before and once in After. This verifies model
    access and warms both embedding indexes. Inspect actual answers,
@@ -51,7 +49,7 @@ Do not display the dashboard's connection-string environment or user
 secrets on the projector. The identity dropdown is a demo security
 context, not authentication.
 
-## Slide 12: "Agent systems begin with information architecture"
+## Slide 10: "NICEDA: Before"
 
 **Opening line:** "Before we build an agent, let's look at what it would
 have to understand. This is ordinary enterprise data, optimized for the
@@ -72,7 +70,7 @@ architecture."
 **If short on time:** do the four browser tabs and show only B01. Do not
 start chat in this first demo.
 
-## Slide 43: "...that's the real challenge"
+## Slide 40: "NICEDA: After"
 
 **Opening line:** "We haven't replaced the systems. We have made their
 data usable for specific agent decisions."
@@ -99,10 +97,10 @@ a scratch customer, fails after SQL commits, then verifies restart
 reconciliation across original and derivative data. Do not delete a
 seeded customer live.
 
-## Slide 49: reserved agentic-access demo
+## Slide 48: "NICEDA: Agentic use"
 
-Unhide/replace the placeholder and title it **"RAG for knowledge, MCP for
-capabilities"**, echoing the deck's RAG/MCP distinction around slide 38.
+Follows slide 47 ("Getting it to work"), which echoes the deck's RAG/MCP
+distinction from slides 15–17.
 
 **Opening line:** "Now we can ask an agent to use this data. Knowledge
 retrieval and operational actions are different capabilities."
@@ -178,7 +176,7 @@ task persistence, retry/conflict behavior, authorization, Before write
 denial, and scratch-customer deletion reconciliation. The rehearsal
 services were temporary; the data-store containers were not restarted.
 
-**Slide 49 live rehearsal completed after configuring Foundry:** the
+**Slide 48 live rehearsal completed after configuring Foundry:** the
 default chat and embedding deployments produced real answers and vectors.
 Before admin cited `support-005`; After admin cited all three
 `optimized-sup-005a/b/c` security concepts. Jane explicitly reported no

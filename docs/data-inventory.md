@@ -30,5 +30,5 @@ in CRM, SQL, Cosmos, and SharePoint seed data:
 ## Status
 
 Catalog is implemented in code (`DataInventoryCatalog.cs`) and exposed via
-the data-explorer API/UI so the "Before" demo beat (~slide 12) can show
+the data-explorer API/UI so the "Before" demo beat (slide 10) can show
 this table live instead of as a slide.

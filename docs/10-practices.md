@@ -51,7 +51,7 @@ a configured Foundry credential; deterministic checks do not.
   live "Before" seed: `NICEDA.ApiService/Crm`, `Sql/RawSqlSeeder.cs`,
   `SupportDocs/RawSupportSeeder.cs`, `Legal`. Browse all four raw shapes
   (and the inventory itself) side by side at `/data-explorer` in
-  `NICEDA.Web` — this is the ~slide 12 demo beat.
+  `NICEDA.Web` — this is the slide 10 demo beat.
 - **Practice 2 (identify agent use cases first)** — ✅
   `docs/agent-use-cases.md`, written before any retrieval/tool code; the
   3 use cases there drive the semantic layer and MCP tool design in later

@@ -31,18 +31,18 @@ remains optional.
 
 | Label | Slide/demo | File | Show this point |
 |---|---|---|---|
-| B01 | 12, Before | `NICEDA.ApiService\DataInventory\DataInventoryCatalog.cs` | Inventory ownership, classification, agent potential. |
-| B02 | 12, Before | `docs\agent-use-cases.md` | Questions and action define the data requirements. |
-| B03 | 12, Before | `NICEDA.ApiService\Sql\RawSqlSeeder.cs` | Normalized tables and raw status codes. |
-| B04 | 43, After | `NICEDA.ApiService\Sql\OptimizedSqlSeeder.cs` | Business-named view over the original SQL rows. |
-| B05 | 43, After | `NICEDA.ApiService\SupportDocs\OptimizedSupportSeeder.cs` | Metadata envelope and concept-based chunks. |
-| B06 | 43, After | `NICEDA.ApiService\Rag\KnowledgeSearchService.cs` | Identity filters sources before embedding, and candidates before ranking. Scope-specific indexes prevent admin cache reuse for Jane. |
-| B07 | 43, After | `NICEDA.ApiService\DataLifecycle\CustomerDataLifecycle.cs` | Mocks/vectors, original stores, feedback participate in deletion; startup reconciles durable markers. |
-| B08 | 43, After | `NICEDA.Tests\RagKnowledgeSearchTests.cs` | Fixed expected source, not an LLM judging another LLM. |
-| B09 | 49, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Business read tool beside search and MCP orchestration; optimized health is an After-only capability. |
-| B10 | 49, Agentic | `NICEDA.McpServer\Tools\CreateFollowUpTaskTool.cs` | Separate MCP command; request-context identity, not an identity argument. |
-| B11 | 49, Agentic | `NICEDA.ApiService\Sql\FollowUpTaskCommands.cs` | Named, validated write capability, not arbitrary SQL. |
-| B12 | 49, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Feedback linked to interaction/customer. Open companion `AgentChatOutcomeRecorder.cs` to show how persistence failures warn without hiding confirmed actions. |
+| B01 | 10, Before | `NICEDA.ApiService\DataInventory\DataInventoryCatalog.cs` | Inventory ownership, classification, agent potential. |
+| B02 | 10, Before | `docs\agent-use-cases.md` | Questions and action define the data requirements. |
+| B03 | 10, Before | `NICEDA.ApiService\Sql\RawSqlSeeder.cs` | Normalized tables and raw status codes. |
+| B04 | 40, After | `NICEDA.ApiService\Sql\OptimizedSqlSeeder.cs` | Business-named view over the original SQL rows. |
+| B05 | 40, After | `NICEDA.ApiService\SupportDocs\OptimizedSupportSeeder.cs` | Metadata envelope and concept-based chunks. |
+| B06 | 40, After | `NICEDA.ApiService\Rag\KnowledgeSearchService.cs` | Identity filters sources before embedding, and candidates before ranking. Scope-specific indexes prevent admin cache reuse for Jane. |
+| B07 | 40, After | `NICEDA.ApiService\DataLifecycle\CustomerDataLifecycle.cs` | Mocks/vectors, original stores, feedback participate in deletion; startup reconciles durable markers. |
+| B08 | 40, After | `NICEDA.Tests\RagKnowledgeSearchTests.cs` | Fixed expected source, not an LLM judging another LLM. |
+| B09 | 48, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Business read tool beside search and MCP orchestration; optimized health is an After-only capability. |
+| B10 | 48, Agentic | `NICEDA.McpServer\Tools\CreateFollowUpTaskTool.cs` | Separate MCP command; request-context identity, not an identity argument. |
+| B11 | 48, Agentic | `NICEDA.ApiService\Sql\FollowUpTaskCommands.cs` | Named, validated write capability, not arbitrary SQL. |
+| B12 | 48, Agentic | `NICEDA.ApiService\Agent\AgentChatService.cs` | Feedback linked to interaction/customer. Open companion `AgentChatOutcomeRecorder.cs` to show how persistence failures warn without hiding confirmed actions. |
 | B13 | backup, permission question | `NICEDA.ApiService\Security\DemoIdentity.cs` | Jane's explicit Betabit/Fenetre/Techorama scope. |
 
 Run with an unlocked interactive desktop and the IDE available to receive

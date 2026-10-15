@@ -11,9 +11,9 @@ update it alongside code as practices land.
 
 | Deck anchor | Demo | Budget |
 |---|---|---|
-| ~slide 12 ("Agent systems begin with information architecture") | **Before**: show NICEDA's raw CRM/SQL/Cosmos/SharePoint data — human-friendly, agent-hostile | ~5 min |
-| ~slide 43 ("...that's the real challenge") | **After**: same data, reshaped per the 10 practices — semantic layer, metadata, classification, CQRS views | ~5 min |
-| ~slide 49 (hidden placeholder — reserved for this) | **Agentic access**: one chat UI, switchable between Before/After datasets, using RAG + MCP + tools via Microsoft Agent Framework, showing the practices literally make-or-break retrieval/action quality | ~5 min |
+| Slide 10 ("NICEDA: Before") | **Before**: show NICEDA's raw CRM/SQL/Cosmos/SharePoint data — human-friendly, agent-hostile | ~5 min |
+| Slide 40 ("NICEDA: After") | **After**: same data, reshaped per the 10 practices — semantic layer, metadata, classification, CQRS views | ~5 min |
+| Slide 48 ("NICEDA: Agentic use") | **Agentic access**: one chat UI, switchable between Before/After datasets, using RAG + MCP + tools via Microsoft Agent Framework, showing the practices literally make-or-break retrieval/action quality | ~5 min |
 
 Everything else is slide time; the app must start fast (Aspire/Docker,
 pre-seeded data) and the three demo beats must each be reachable in one or
@@ -109,21 +109,20 @@ entry in `docs/10-practices.md`. Source slide(s) noted for traceability.
 
 | # | Practice | Deck source | Where it shows up in code |
 |---|---|---|---|
-| 1 | Build a data inventory | Slide 5 (Practice 1) | `docs/10-practices.md` catalog + a literal `NICEDA.DataInventory` (system/data/owner/classification/agent-potential table) that the API and seed code reference instead of hardcoding, so it doubles as living documentation. |
-| 2 | Identify agent use cases | Slide 11 (Practice 2) | A short `docs/agent-use-cases.md` (e.g. "identify customers at risk") driving which data the semantic layer/MCP tools actually expose — written before the schema, not after. |
-| 3 | Add a semantic layer | Slides 18/19 (Practice 3/4), 36 | `NICEDA.ApiService`'s "after" views (`CustomerHealthView`-style projections) + a canonical-term/alias glossary, replacing raw joins the agent would otherwise have to reverse-engineer. |
-| 4 | Classify during ingestion | Slide 22 (Practice 5) | Seed/ingestion pipeline stamps `classification`/`owner`/`retention`/`region` at write time, never bolted on later. |
-| 5 | Separate authorization and retrieval | Slides 24/25 (Practice 6) | Security context (current-user selector) resolved **before** the vector/metadata filter is applied; security fields travel with the chunk but are never embedded. |
-| 6 | Design for deletion | Slide 27 (Practice 7) | A `DeleteCustomerData` command that fans out across SQL rows, Cosmos docs, and the vector index — demonstrates the GDPR "is it actually deleted everywhere" problem. |
-| 7 | Chunk based on meaning | Slides 26/28 (Practice 8) | Optimized Cosmos documents pre-chunked by concept (onboarding, security review, escalation) instead of fixed-size windows; raw dataset intentionally keeps the "50-page blob" shape for contrast. |
-| 8 | Apply the CQRS pattern | Slides 33/34 (Practice 11 in deck) | `NICEDA.ApiService` read models (`GetCustomerHealth`, `GetRenewalRisk`) vs. write commands (`CreateFollowUpTaskCommand`) — no raw `SELECT *`/table exposure to the agent. |
-| 9 | Verify the use case with automated deterministic tests | Slide 31 (Practice 10 in deck) | `NICEDA.Tests`: fixed question → expected-facts assertions against the RAG/agent pipeline, runnable via `dotnet test`. |
-| 10 | Close the loop (create feedback data) | Not explicit in deck notes; per your clarification | Agent tool outcomes, failures, and user interactions get written back as structured "feedback" records (new Cosmos documents) linked to the originating use case/semantic entity, accumulating over time for future eval/retrieval. |
+| 1 | Build a data inventory | Slides 8/9/14 (Practice 1) | `docs/10-practices.md` catalog + a literal `NICEDA.DataInventory` (system/data/owner/classification/agent-potential table) that the API and seed code reference instead of hardcoding, so it doubles as living documentation. |
+| 2 | Identify agent use cases | Slide 20 (Practice 2) | A short `docs/agent-use-cases.md` (e.g. "identify customers at risk") driving which data the semantic layer/MCP tools actually expose — written before the schema, not after. |
+| 3 | Add a semantic layer | Slides 21–26 (Practice 3) | `NICEDA.ApiService`'s "after" views (`CustomerHealthView`-style projections) + a canonical-term/alias glossary, replacing raw joins the agent would otherwise have to reverse-engineer. |
+| 4 | Classify during ingestion | Slides 27–29 (Practice 4) | Seed/ingestion pipeline stamps `classification`/`owner`/`retention`/`region` at write time, never bolted on later. |
+| 5 | Separate authorization and retrieval | Slides 32/33 (Practice 5) | Security context (current-user selector) resolved **before** the vector/metadata filter is applied; security fields travel with the chunk but are never embedded. |
+| 6 | Design for deletion | Slide 34 (Practice 6) | A `DeleteCustomerData` command that fans out across SQL rows, Cosmos docs, and the vector index — demonstrates the GDPR "is it actually deleted everywhere" problem. |
+| 7 | Chunk based on meaning | Slides 35–37 (Practice 7) | Optimized Cosmos documents pre-chunked by concept (onboarding, security review, escalation) instead of fixed-size windows; raw dataset intentionally keeps the "50-page blob" shape for contrast. |
+| 8 | Apply the CQRS pattern | Slide 39 (Practice 8) | `NICEDA.ApiService` read models (`GetCustomerHealth`, `GetRenewalRisk`) vs. write commands (`CreateFollowUpTaskCommand`) — no raw `SELECT *`/table exposure to the agent. |
+| 9 | Verify the use case with automated deterministic tests | Slide 42 (Practice 9) | `NICEDA.Tests`: fixed question → expected-facts assertions against the RAG/agent pipeline, runnable via `dotnet test`. |
+| 10 | Close the loop (create feedback data) | Slide 43 (Practice 10) | Agent tool outcomes, failures, and user interactions get written back as structured "feedback" records (new Cosmos documents) linked to the originating use case/semantic entity, accumulating over time for future eval/retrieval. The SQL `audit.AgentActionLog` adds the per-tool-call trail. |
 
-Deck's own "Practice 9: Relations" (slide 30) isn't a separate numbered
-step in your list — it's folded into practices 1 and 3 (the inventory and
-semantic layer already capture customer→contract→ticket relationships).
-Flagging this so it's not a surprise later.
+Relations (slides 30/31, "Designing data for retrieval") aren't a separate
+numbered practice — they're folded into practices 1 and 3 (the inventory
+and semantic layer already capture customer→contract→ticket relationships).
 
 ## 6. Agentic layer
 

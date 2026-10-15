@@ -4,7 +4,7 @@
 
 Written *before* the semantic layer and tools, so the schema serves the
 use cases instead of the other way around. These three are what the
-agentic chat demo (~slide 49) is built to answer well on the "After" data
+agentic chat demo (slide 48) is built to answer well on the "After" data
 and poorly (or not at all) on the "Before" data:
 
 1. **"Which customers are at risk and why?"** — requires reading signal
