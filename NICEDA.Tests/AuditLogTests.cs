@@ -44,6 +44,21 @@ public sealed class AuditLogTests
     }
 
     [Fact]
+    public void Seed_CoversHumanSystemAndAgentRowsInBothModes()
+    {
+        var entries = AgentActionAuditLog.SeedEntries.Select(seed => seed.Entry).ToArray();
+
+        Assert.True(entries.Length >= 20);
+        Assert.Contains(entries, entry => entry.ActorType == "Human");
+        Assert.Contains(entries, entry => entry.ActorType == "System");
+        Assert.Contains(entries, entry => entry.ActorType == "Agent" && entry.Mode == "Before");
+        Assert.Contains(entries, entry => entry.ActorType == "Agent" && entry.Mode == "After");
+        Assert.Contains(entries, entry => entry.Outcome == "denied");
+        Assert.All(entries, entry => Assert.StartsWith("seed-", entry.InteractionId));
+        Assert.Equal(entries.Length, entries.Select(entry => entry.InteractionId).Distinct().Count());
+    }
+
+    [Fact]
     public void Detail_IsTruncatedToColumnLength()
     {
         Assert.Equal(500, AgentActionAuditLog.Truncate(new string('x', 900))!.Length);

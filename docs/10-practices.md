@@ -101,7 +101,9 @@ a configured Foundry credential; deterministic checks do not.
   durable deletion markers through that lifecycle; task and feedback
   writes share the same per-customer transaction lock.
   `Audit/AgentActionAuditLog.cs` adds a SQL `audit.AgentActionLog` table
-  seeded with historical human/system rows. Every agent tool call
+  seeded with ~24 dummy rows: human and system activity plus earlier
+  agent sessions in both Before and After mode (keyed `seed-NN`, so
+  seeding is idempotent per row). Every agent tool call
   (`search_knowledge`, `get_customer_health`, `create_follow_up_task`,
   including denials and failures) appends a row with the mode, the user
   the agent acted for, the customer, and the outcome. The Data Explorer

@@ -172,7 +172,9 @@ Known issues and the prioritized repair sequence are in
    helpful feedback. Jane sees her EU accounts; admin sees all.
 4. **Audit:** open Data Explorer → **Audit log**. Each agent tool call is a
    highlighted row (mode, on-behalf-of user, customer, outcome) next to
-   seeded human/system activity, including denied and failed actions.
+   seeded dummy history (human, system, and earlier Before/After agent
+   sessions), including denied and failed actions. The tab shows the same
+   log in both Before and After mode.
 
 Chat interactions are held in memory; submit feedback before restarting
 the API. Feedback already submitted is durable in Cosmos, but a feedback

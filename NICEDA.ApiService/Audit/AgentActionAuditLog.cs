@@ -62,16 +62,36 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
         );
         """;
 
-    // Historical human/system activity so agent rows appear in context.
+    // Dummy history so the Audit log tab is populated on a fresh run: human
+    // and system activity plus earlier agent sessions in both Before and
+    // After mode. Each row carries a stable "seed-NN" InteractionId so
+    // seeding is idempotent per row, even on an already-populated table.
     internal static readonly (int DaysAgo, AuditEntry Entry)[] SeedEntries =
     [
-        (21, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "succeeded", "Nightly CRM account sync")),
-        (14, new("Human", "jane.okafor@niceda.example", null, null, "update_contract", "Write", "betabit", "succeeded", "Logged renewal risk after QBR")),
-        (12, new("Human", "marcus.lindqvist@niceda.example", null, null, "view_customer", "Read", "contoso", "succeeded", "Opened account overview")),
-        (9, new("System", "support-import", null, null, "import_support_tickets", "Write", "fabrikam", "succeeded", "Imported 3 support tickets")),
-        (6, new("Human", "jane.okafor@niceda.example", null, null, "create_follow_up_task", "Write", "fenetre", "succeeded", "Manual renewal check-in")),
-        (3, new("Human", "admin", null, null, "export_report", "Read", "techorama", "succeeded", "Quarterly account report")),
-        (1, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "succeeded", "Nightly CRM account sync")),
+        (30, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "succeeded", "Nightly CRM account sync", "seed-01")),
+        (28, new("Human", "jane.okafor@niceda.example", null, null, "view_customer", "Read", "betabit", "succeeded", "Opened account overview", "seed-02")),
+        (26, new("Agent", AgentActor, "jane", "Before", "search_knowledge", "Read", "betabit", "succeeded", "4 knowledge hit(s): raw ticket text, no concept or classification", "seed-03")),
+        (26, new("Agent", AgentActor, "jane", "Before", "search_knowledge", "Read", "fenetre", "succeeded", "2 knowledge hit(s): raw-sup-003, raw-sup-004", "seed-04")),
+        (24, new("System", "support-import", null, null, "import_support_tickets", "Write", "contoso", "succeeded", "Imported 2 support tickets", "seed-05")),
+        (21, new("Human", "jane.okafor@niceda.example", null, null, "update_contract", "Write", "betabit", "succeeded", "Logged renewal risk after QBR", "seed-06")),
+        (20, new("Agent", AgentActor, "admin", "Before", "search_knowledge", "Read", "fabrikam", "succeeded", "1 knowledge hit(s): contract text chunked mid-clause", "seed-07")),
+        (20, new("Agent", AgentActor, "admin", "Before", "create_follow_up_task", "Write", "fabrikam", "failed", "MCP call rejected: due date in the past", "seed-08")),
+        (18, new("Human", "marcus.lindqvist@niceda.example", null, null, "view_customer", "Read", "contoso", "succeeded", "Opened account overview", "seed-09")),
+        (16, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "failed", "CRM API timeout; retried next night", "seed-10")),
+        (14, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", "betabit", "succeeded", "3 knowledge hit(s), classified Internal", "seed-11")),
+        (14, new("Agent", AgentActor, "jane", "After", "get_customer_health", "Read", "betabit", "succeeded", "Read customer health record", "seed-12")),
+        (14, new("Agent", AgentActor, "jane", "After", "create_follow_up_task", "Write", "betabit", "created", "Task 3001 via MCP", "seed-13")),
+        (12, new("Human", "marcus.lindqvist@niceda.example", null, null, "create_follow_up_task", "Write", "fabrikam", "succeeded", "Manual escalation call", "seed-14")),
+        (10, new("Agent", AgentActor, "jane", "After", "get_customer_health", "Read", "contoso", "denied", "Identity not authorized for this customer", "seed-15")),
+        (9, new("System", "support-import", null, null, "import_support_tickets", "Write", "fabrikam", "succeeded", "Imported 3 support tickets", "seed-16")),
+        (8, new("Agent", AgentActor, "admin", "After", "get_customer_health", "Read", "contoso", "succeeded", "Read customer health record", "seed-17")),
+        (8, new("Agent", AgentActor, "admin", "After", "create_follow_up_task", "Write", "contoso", "existing", "Idempotent retry returned existing task 3002", "seed-18")),
+        (6, new("Human", "jane.okafor@niceda.example", null, null, "create_follow_up_task", "Write", "fenetre", "succeeded", "Manual renewal check-in", "seed-19")),
+        (5, new("Agent", AgentActor, "jane", "Before", "search_knowledge", "Read", "techorama", "succeeded", "Raw search returned duplicate, unclassified notes", "seed-20")),
+        (4, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", "fenetre", "succeeded", "2 knowledge hit(s), classified Confidential", "seed-21")),
+        (3, new("Human", "admin", null, null, "export_report", "Read", "techorama", "succeeded", "Quarterly account report", "seed-22")),
+        (2, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", null, "succeeded", "0 knowledge hits", "seed-23")),
+        (1, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "succeeded", "Nightly CRM account sync", "seed-24")),
     ];
 
     public static async Task EnsureCreatedAndSeededAsync(
@@ -83,14 +103,21 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
             await schema.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        await using (var count = new SqlCommand("SELECT COUNT(*) FROM audit.AgentActionLog;", connection))
+        // Replace the earlier unkeyed seed (only seeds write non-agent rows).
+        await using (var legacy = new SqlCommand(
+            "DELETE FROM audit.AgentActionLog WHERE InteractionId IS NULL AND ActorType <> 'Agent';", connection))
         {
-            if ((int)(await count.ExecuteScalarAsync(cancellationToken))! > 0) return;
+            await legacy.ExecuteNonQueryAsync(cancellationToken);
         }
 
         // NICEDA-PRACTICE-6: never seed audit rows for an erased customer.
+        // Insert only missing seed rows, so existing databases also get them.
         foreach (var (daysAgo, entry) in SeedEntriesFor(existingCustomerIds))
         {
+            await using var exists = new SqlCommand(
+                "SELECT COUNT(*) FROM audit.AgentActionLog WHERE InteractionId = @id;", connection);
+            exists.Parameters.AddWithValue("@id", entry.InteractionId);
+            if ((int)(await exists.ExecuteScalarAsync(cancellationToken))! > 0) continue;
             await InsertAsync(connection, entry, DateTime.UtcNow.AddDays(-daysAgo), cancellationToken);
         }
     }
