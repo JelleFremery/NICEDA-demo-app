@@ -118,7 +118,7 @@ entry in `docs/10-practices.md`. Source slide(s) noted for traceability.
 | 7 | Chunk based on meaning | Slides 35–37 (Practice 7) | Optimized Cosmos documents pre-chunked by concept (onboarding, security review, escalation) instead of fixed-size windows; raw dataset intentionally keeps the "50-page blob" shape for contrast. |
 | 8 | Apply the CQRS pattern | Slide 39 (Practice 8) | `NICEDA.ApiService` read models (`GetCustomerHealth`, `GetRenewalRisk`) vs. write commands (`CreateFollowUpTaskCommand`) — no raw `SELECT *`/table exposure to the agent. |
 | 9 | Verify the use case with automated deterministic tests | Slide 42 (Practice 9) | `NICEDA.Tests`: fixed question → expected-facts assertions against the RAG/agent pipeline, runnable via `dotnet test`. |
-| 10 | Close the loop (create feedback data) | Slide 43 (Practice 10) | Agent tool outcomes, failures, and user interactions get written back as structured "feedback" records (new Cosmos documents) linked to the originating use case/semantic entity, accumulating over time for future eval/retrieval. The SQL `audit.AgentActionLog` adds the per-tool-call trail. |
+| 10 | Close the loop (create feedback data) | Slide 43 (Practice 10) | Agent tool outcomes, failures, and user interactions get written back as structured "feedback" records (new Cosmos documents) linked to the originating use case/semantic entity, accumulating over time for future eval/retrieval. The SQL `audit.AgentActionLog` adds the per-tool-call trail, and the "Agent usage" tab (`Audit/AgentUsage.cs`) rolls it up to answer "which data is never touched?". |
 
 Relations (slides 30/31, "Designing data for retrieval") aren't a separate
 numbered practice — they're folded into practices 1 and 3 (the inventory

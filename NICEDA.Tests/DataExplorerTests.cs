@@ -73,6 +73,8 @@ public sealed class DataExplorerTests
     [InlineData("SharePoint", "after", "legal/optimized/documents")]
     [InlineData("Audit log", "before", "sql/audit-log")]
     [InlineData("Audit log", "after", "sql/audit-log")]
+    [InlineData("Agent usage", "before", "sql/agent-usage")]
+    [InlineData("Agent usage", "after", "sql/agent-usage")]
     public async Task ClientSendsIdentityPerRequest(string system, string mode, string path)
     {
         using var handler = new ExplorerHandler();
@@ -111,7 +113,7 @@ public sealed class DataExplorerTests
             {
                 "crm/customers", "crm/optimized/customers", "legal/documents", "legal/optimized/documents",
                 "sql/raw/customers", "sql/optimized/customer-health", "sql/optimized/follow-up-tasks",
-                "sql/audit-log", "cosmos/raw-support", "cosmos/optimized-support",
+                "sql/audit-log", "sql/agent-usage", "cosmos/raw-support", "cosmos/optimized-support",
             })
             {
                 foreach (var user in new[] { "", "unknown" })

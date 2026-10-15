@@ -58,6 +58,41 @@ public sealed class AuditLogTests
         Assert.Equal(entries.Length, entries.Select(entry => entry.InteractionId).Distinct().Count());
     }
 
+    private static AuditLogRow Call(string actorType, string action, string customerId, string outcome = "succeeded") =>
+        new(1, DateTime.UtcNow, actorType, "x", "jane", "After", action, "Read", customerId, outcome, null, null);
+
+    [Fact]
+    public void AgentUsage_FlagsNeverTouchedCustomersAndUnusedCapabilities()
+    {
+        var usage = AgentUsage.Summarize(
+            [("betabit", "Betabit"), ("techorama", "Techorama")],
+            [
+                Call("Agent", "search_knowledge", "betabit"),
+                Call("Agent", "search_knowledge", "BETABIT", "denied"),
+                Call("Agent", "create_follow_up_task", "betabit", "failed"),
+                Call("Human", "get_customer_health", "techorama"),
+            ]);
+
+        var techorama = usage[0];
+        Assert.Equal("techorama", techorama.CustomerId);
+        Assert.Equal(AgentUsage.NeverTouched, techorama.Status);
+        Assert.Null(techorama.LastAgentAccessUtc);
+        Assert.Equal(0, techorama.GetCustomerHealth);
+
+        var betabit = usage[1];
+        Assert.Equal(AgentUsage.Used, betabit.Status);
+        Assert.Equal((2, 0, 1, 1, 1), (betabit.SearchKnowledge, betabit.GetCustomerHealth,
+            betabit.CreateFollowUpTask, betabit.Denied, betabit.Failed));
+        Assert.Equal("get_customer_health", betabit.NeverUsedCapabilities);
+    }
+
+    [Fact]
+    public void Seed_LeavesTechoramaUntouchedByTheAgent()
+    {
+        Assert.DoesNotContain(AgentActionAuditLog.SeedEntries, seed =>
+            seed.Entry.ActorType == "Agent" && seed.Entry.CustomerId == "techorama");
+    }
+
     [Fact]
     public void Detail_IsTruncatedToColumnLength()
     {

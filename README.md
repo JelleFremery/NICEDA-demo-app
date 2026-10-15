@@ -175,6 +175,10 @@ Known issues and the prioritized repair sequence are in
    seeded dummy history (human, system, and earlier Before/After agent
    sessions), including denied and failed actions. The tab shows the same
    log in both Before and After mode.
+5. **Usage (slide 43):** open **Agent usage**. It rolls the audit log up
+   per customer and tool. Customers the agent never touched (Techorama on
+   a fresh database) are highlighted, and "never used" lists capabilities
+   with zero calls. That's the data to improve, or to stop maintaining.
 
 Chat interactions are held in memory; submit feedback before restarting
 the API. Feedback already submitted is durable in Cosmos, but a feedback

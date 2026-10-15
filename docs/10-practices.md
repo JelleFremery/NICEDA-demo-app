@@ -109,6 +109,11 @@ a configured Foundry credential; deterministic checks do not.
   the agent acted for, the customer, and the outcome. The Data Explorer
   "Audit log" tab shows it under the same identity scope, and customer
   deletion erases a customer's audit rows (practice 6).
+  `Audit/AgentUsage.cs` answers slide 43's "Which data is never
+  touched?": the Data Explorer "Agent usage" tab aggregates agent rows
+  per customer × tool (calls, denials, failures, last access) and
+  highlights customers the agent never touched (Techorama in the seed)
+  plus capabilities never used per customer.
 - **Agent Framework and MCP** — `Agent/AgentChatService.cs` combines
   retrieval, the customer-health read model, and the separate
   `NICEDA.McpServer` follow-up tool. `GovernedTransportTests.cs` verifies

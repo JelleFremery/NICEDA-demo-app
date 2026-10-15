@@ -119,6 +119,8 @@ public static class DataExplorerEndpoints
         // actions, newest first. Mode-independent: it records both modes.
         records.MapGet("/sql/audit-log", async (SqlConnection connection, HttpContext context, CancellationToken cancellationToken) =>
             await AgentActionAuditLog.GetVisibleAsync(connection, Identity(context), cancellationToken));
+        records.MapGet("/sql/agent-usage", async (SqlConnection connection, HttpContext context, CancellationToken cancellationToken) =>
+            await AgentUsage.GetVisibleAsync(connection, Identity(context), cancellationToken));
 
         // NICEDA-PRACTICE-4 / NICEDA-PRACTICE-7: metadata envelope +
         // concept-based chunking. Contrast with /cosmos/raw-support above.

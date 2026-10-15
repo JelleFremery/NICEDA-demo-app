@@ -22,6 +22,7 @@ public class DataExplorerApiClient(HttpClient httpClient)
             ("SharePoint", "after") => "legal/optimized/documents",
             ("SharePoint", _) => "legal/documents",
             ("Audit log", _) => "sql/audit-log",
+            ("Agent usage", _) => "sql/agent-usage",
             _ => throw new ArgumentException("Unknown system.", nameof(system))
         };
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/data-explorer/{path}");

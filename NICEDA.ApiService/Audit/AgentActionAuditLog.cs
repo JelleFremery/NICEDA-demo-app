@@ -87,7 +87,7 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
         (8, new("Agent", AgentActor, "admin", "After", "get_customer_health", "Read", "contoso", "succeeded", "Read customer health record", "seed-17")),
         (8, new("Agent", AgentActor, "admin", "After", "create_follow_up_task", "Write", "contoso", "existing", "Idempotent retry returned existing task 3002", "seed-18")),
         (6, new("Human", "jane.okafor@niceda.example", null, null, "create_follow_up_task", "Write", "fenetre", "succeeded", "Manual renewal check-in", "seed-19")),
-        (5, new("Agent", AgentActor, "jane", "Before", "search_knowledge", "Read", "techorama", "succeeded", "Raw search returned duplicate, unclassified notes", "seed-20")),
+        (5, new("Agent", AgentActor, "jane", "Before", "search_knowledge", "Read", "betabit", "succeeded", "Raw search returned duplicate, unclassified notes", "seed-20")),
         (4, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", "fenetre", "succeeded", "2 knowledge hit(s), classified Confidential", "seed-21")),
         (3, new("Human", "admin", null, null, "export_report", "Read", "techorama", "succeeded", "Quarterly account report", "seed-22")),
         (2, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", null, "succeeded", "0 knowledge hits", "seed-23")),
@@ -116,8 +116,9 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
         foreach (var (daysAgo, entry) in SeedEntriesFor(existingCustomerIds))
         {
             await using var refresh = new SqlCommand(
-                "UPDATE audit.AgentActionLog SET Detail = @detail, Outcome = @outcome WHERE InteractionId = @id;", connection);
+                "UPDATE audit.AgentActionLog SET CustomerId = @customerId, Detail = @detail, Outcome = @outcome WHERE InteractionId = @id;", connection);
             refresh.Parameters.AddWithValue("@id", entry.InteractionId);
+            refresh.Parameters.AddWithValue("@customerId", (object?)entry.CustomerId ?? DBNull.Value);
             refresh.Parameters.AddWithValue("@detail", (object?)entry.Detail ?? DBNull.Value);
             refresh.Parameters.AddWithValue("@outcome", entry.Outcome);
             if (await refresh.ExecuteNonQueryAsync(cancellationToken) > 0) continue;
