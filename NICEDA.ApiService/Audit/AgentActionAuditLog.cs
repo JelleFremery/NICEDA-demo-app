@@ -75,7 +75,7 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
         (24, new("System", "support-import", null, null, "import_support_tickets", "Write", "contoso", "succeeded", "Imported 2 support tickets", "seed-05")),
         (21, new("Human", "jane.okafor@niceda.example", null, null, "update_contract", "Write", "betabit", "succeeded", "Logged renewal risk after QBR", "seed-06")),
         (20, new("Agent", AgentActor, "admin", "Before", "search_knowledge", "Read", "fabrikam", "succeeded", "1 knowledge hit(s): contract text chunked mid-clause", "seed-07")),
-        (20, new("Agent", AgentActor, "admin", "Before", "create_follow_up_task", "Write", "fabrikam", "failed", "MCP call rejected: due date in the past", "seed-08")),
+        (20, new("Agent", AgentActor, "admin", "Before", "create_follow_up_task", "Write", "fabrikam", "failed", "Follow-up tasks can only be created in After mode.", "seed-08")),
         (18, new("Human", "marcus.lindqvist@niceda.example", null, null, "view_customer", "Read", "contoso", "succeeded", "Opened account overview", "seed-09")),
         (16, new("System", "crm-sync", null, null, "sync_crm_accounts", "Write", null, "failed", "CRM API timeout; retried next night", "seed-10")),
         (14, new("Agent", AgentActor, "jane", "After", "search_knowledge", "Read", "betabit", "succeeded", "3 knowledge hit(s), classified Internal", "seed-11")),
@@ -111,13 +111,16 @@ public sealed class AgentActionAuditLog(IServiceScopeFactory scopeFactory, ILogg
         }
 
         // NICEDA-PRACTICE-6: never seed audit rows for an erased customer.
-        // Insert only missing seed rows, so existing databases also get them.
+        // Insert missing seed rows and refresh existing ones, so existing
+        // databases pick up seed corrections too.
         foreach (var (daysAgo, entry) in SeedEntriesFor(existingCustomerIds))
         {
-            await using var exists = new SqlCommand(
-                "SELECT COUNT(*) FROM audit.AgentActionLog WHERE InteractionId = @id;", connection);
-            exists.Parameters.AddWithValue("@id", entry.InteractionId);
-            if ((int)(await exists.ExecuteScalarAsync(cancellationToken))! > 0) continue;
+            await using var refresh = new SqlCommand(
+                "UPDATE audit.AgentActionLog SET Detail = @detail, Outcome = @outcome WHERE InteractionId = @id;", connection);
+            refresh.Parameters.AddWithValue("@id", entry.InteractionId);
+            refresh.Parameters.AddWithValue("@detail", (object?)entry.Detail ?? DBNull.Value);
+            refresh.Parameters.AddWithValue("@outcome", entry.Outcome);
+            if (await refresh.ExecuteNonQueryAsync(cancellationToken) > 0) continue;
             await InsertAsync(connection, entry, DateTime.UtcNow.AddDays(-daysAgo), cancellationToken);
         }
     }
