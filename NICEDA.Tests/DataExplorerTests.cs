@@ -43,6 +43,9 @@ public sealed class DataExplorerTests
             {
                 Assert.Contains("class=\"truncated-cell-text\"", component.ToHtmlString());
                 Assert.Contains("title=\"The full sales note stays available on hover.\"", component.ToHtmlString());
+                Assert.Contains("<td class=\"email-cell\">jane.okafor@niceda.example</td>", component.ToHtmlString());
+                Assert.Contains("<td class=\"email-cell\">customer.success.team@long-customer-domain.example</td>", component.ToHtmlString());
+                Assert.Contains("<td>Contact jane.okafor@niceda.example for details.</td>", component.ToHtmlString());
             }
             Assert.Single(handler.Requests);
 
@@ -175,6 +178,9 @@ public sealed class DataExplorerTests
                     {
                         name = user == "jane" ? "Jane record" : "Admin record",
                         salesNotes = "The full sales note stays available on hover.",
+                        primaryContactEmail = "jane.okafor@niceda.example",
+                        owner = "customer.success.team@long-customer-domain.example",
+                        supportNotes = "Contact jane.okafor@niceda.example for details.",
                     },
                 }),
             });

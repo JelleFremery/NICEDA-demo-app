@@ -1,0 +1,100 @@
+@page "/task-board"
+@implements IDisposable
+@inject DataExplorerApiClient Api
+@inject DemoState Demo
+
+<PageTitle>Task board — NICEDA</PageTitle>
+<h1>Follow-up tasks</h1>
+<p>Persisted follow-up tasks for your customer scope. The same board is available in Before and After. Read-only.</p>
+<button class="btn btn-outline-primary mb-3" disabled="@Demo.IsBusy" @onclick="LoadAsync">Refresh</button>
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert"><strong>Could not load tasks.</strong> @_error</div>
+}
+else if (_loading)
+{
+    <p role="status">Loading tasks…</p>
+}
+else
+{
+    <div class="task-board">
+        @foreach (var completed in new[] { false, true })
+        {
+            var tasks = _tasks.Where(task => task.IsCompleted == completed)
+                .OrderBy(task => task.DueDate).ThenBy(task => task.FollowUpTaskId).ToList();
+            <section aria-label="@(completed ? "Completed tasks" : "Open tasks")">
+                <h2>@(completed ? "Completed" : "Open") (@tasks.Count)</h2>
+                @if (tasks.Count == 0)
+                {
+                    <p>No @(completed ? "completed" : "open") tasks.</p>
+                }
+                @foreach (var task in tasks)
+                {
+                    <article class="record-card mb-3">
+                        <h3>Task #@task.FollowUpTaskId · @task.CustomerId</h3>
+                        <p>@task.Reason</p>
+                        <dl>
+                            <dt>Due date</dt><dd>@task.DueDate.ToString("yyyy-MM-dd")</dd>
+                            <dt>Created by</dt><dd>@task.CreatedBy</dd>
+                            <dt>Created (UTC)</dt><dd>@task.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</dd>
+                        </dl>
+                    </article>
+                }
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    private List<FollowUpTask> _tasks = [];
+    private string? _error;
+    private string _loadedUserId = "";
+    private bool _loading;
+    private bool _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Demo.Changed += OnChanged;
+        await LoadAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () =>
+    {
+        if (_disposed) return;
+        if (!_loading && _loadedUserId != Demo.UserId)
+            await LoadAsync();
+        if (!_disposed) StateHasChanged();
+    });
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _tasks = [];
+        _loadedUserId = Demo.UserId;
+        using var operation = Demo.BeginOperation();
+        try
+        {
+            _tasks = await Api.GetFollowUpTasksAsync(_loadedUserId, _lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException
+            or InvalidOperationException or OperationCanceledException)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Demo.Changed -= OnChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

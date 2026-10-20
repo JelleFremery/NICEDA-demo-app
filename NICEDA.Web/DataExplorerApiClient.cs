@@ -8,6 +8,22 @@ namespace NICEDA.Web;
 /// </summary>
 public class DataExplorerApiClient(HttpClient httpClient)
 {
+    public async Task<List<FollowUpTask>> GetFollowUpTasksAsync(string userId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/data-explorer/sql/optimized/follow-up-tasks");
+        request.Headers.Add("X-Niceda-User", userId);
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var detail = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"API error {(int)response.StatusCode} ({response.ReasonPhrase}): {detail}");
+        }
+        return await response.Content.ReadFromJsonAsync<List<FollowUpTask>>(cancellationToken)
+            ?? throw new InvalidOperationException("The task API returned an empty response.");
+    }
+
     public async Task<List<JsonObject>> GetSystemAsync(string system, string mode, string userId,
         CancellationToken cancellationToken = default)
     {
@@ -34,6 +50,7 @@ public class DataExplorerApiClient(HttpClient httpClient)
             throw new HttpRequestException(
                 $"API error {(int)response.StatusCode} ({response.ReasonPhrase}): {detail}");
         }
+
         return await response.Content.ReadFromJsonAsync<List<JsonObject>>(cancellationToken)
             ?? throw new InvalidOperationException("The explorer API returned an empty response.");
     }
@@ -42,3 +59,7 @@ public class DataExplorerApiClient(HttpClient httpClient)
         httpClient.GetFromJsonAsync<List<JsonObject>>("/api/data-explorer/inventory", cancellationToken);
 
 }
+
+public sealed record FollowUpTask(
+    int FollowUpTaskId, string CustomerId, string Reason, DateTime DueDate,
+    string CreatedBy, DateTime CreatedAtUtc, bool IsCompleted);

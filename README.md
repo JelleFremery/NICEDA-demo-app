@@ -156,6 +156,11 @@ demo SQL database when using Compose.
 
 ### Five-minute demo beats
 
+The **Task board** navigation link shows persisted follow-up tasks in Open
+and Completed columns, ordered by due date. It is read-only, available in
+both Before and After, and scoped to the current user. Use **Refresh** after
+creating a task in Chat to verify its ID, reason, due date and creator.
+
 The paste-ready slide script is in
 [`docs/demo-script.md`](./docs/demo-script.md). The pre-session refresher
 (customer cast, prompts, prep, Visual Studio bookmarks, architecture) is in

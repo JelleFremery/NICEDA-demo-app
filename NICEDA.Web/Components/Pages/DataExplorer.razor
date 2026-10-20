@@ -52,7 +52,7 @@ else if (_error is null)
                                 }
                                 else
                                 {
-                                    <td>@value</td>
+                                    <td class="@(IsEmailAddress(value) ? "email-cell" : null)">@value</td>
                                 }
                             }
                         </tr>
@@ -147,6 +147,9 @@ else if (_error is null)
         : Display(row["status"]) == "Never touched by agent" ? "usage-untouched-row" : null;
     private static string Display(JsonNode? value) =>
         value is JsonValue scalar && scalar.TryGetValue<string>(out var text) ? text : value?.ToJsonString() ?? "—";
+    private static bool IsEmailAddress(string value) =>
+        System.Net.Mail.MailAddress.TryCreate(value, out var address)
+        && string.Equals(address.Address, value, StringComparison.Ordinal);
     private static string Json(object value) =>
         System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     private static string Title(JsonObject row) =>
